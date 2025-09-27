@@ -39,18 +39,18 @@ impl P2PChatClient {
     /// Create a new P2P chat client
     pub async fn new(
         username: String,
+        listen_host: Option<String>,
         listen_port: Option<u16>,
         bootstrap_peers: Vec<SocketAddr>,
         enable_tls: bool,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
-        let listen_addr = if let Some(port) = listen_port {
-            if port == 0 {
-                "127.0.0.1:0".parse()? // Random port
-            } else {
-                format!("127.0.0.1:{}", port).parse()?
-            }
+        let host = listen_host.unwrap_or_else(|| "127.0.0.1".to_string());
+        let port = listen_port.unwrap_or(0);
+        
+        let listen_addr = if port == 0 {
+            format!("{}:0", host).parse()? // Random port
         } else {
-            "127.0.0.1:0".parse()? // Random port
+            format!("{}:{}", host, port).parse()?
         };
 
         // Configure P2P node
