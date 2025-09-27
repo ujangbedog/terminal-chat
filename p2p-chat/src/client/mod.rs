@@ -183,7 +183,8 @@ impl P2PChatClient {
                         }
                         None => {
                             error!("Event channel closed");
-                            break;
+                            // Force terminate when event channel closes (indicates network failure)
+                            force_cleanup_terminal("Network connection lost");
                         }
                     }
                 }
