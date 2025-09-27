@@ -1,82 +1,69 @@
-# Simple Chat Application
+# P2P Chat Application
 
-A simple chat application built with Rust using async/await and Tokio. The server acts as a message relay and multiple clients can connect to chat with each other.
+A simple peer-to-peer chat application built with Rust featuring TLS encryption and decentralized networking.
 
-## Features
+## 🚀 Features
 
-- ✅ Multiple clients can connect simultaneously
-- ✅ Real-time message broadcasting
-- ✅ Username validation and uniqueness
-- ✅ User join/leave notifications
-- ✅ Simple line-based interface
-- ✅ Server logging for message relay
+- **P2P Architecture** - No central server required
+- **TLS Encryption** - Always-on encryption with self-signed certificates
+- **Auto Discovery** - Automatic peer discovery via multicast
+- **Clean Terminal UI** - Simple and intuitive chat interface
 
-## Project Structure
+## 🚀 Quick Start
+
+```bash
+# Start bootstrap node (first peer)
+cargo run --bin p2p-chat -- -u Alice -p 8080
+
+# Connect to bootstrap (in another terminal)
+cargo run --bin p2p-chat -- -u Bob -b 127.0.0.1:8080
+```
+
+## 📖 Usage
+
+### Command Line Options
+- `-u, --username <NAME>` - Set your username (required)
+- `-p, --port <PORT>` - Set listening port (optional, random if not set)
+- `-b, --bootstrap <IP:PORT>` - Connect to bootstrap peer
+- `-h, --help` - Show help information
+
+### Chat Commands
+- Type any message and press Enter to send
+- `/peers` - Show connected peers
+- `/help` - Show available commands
+- `/quit` - Exit the application
+
+### Example
+```bash
+# Terminal 1 - Start Alice as bootstrap
+cargo run --bin p2p-chat -- -u Alice -p 8080
+
+# Terminal 2 - Bob connects to Alice
+cargo run --bin p2p-chat -- -u Bob -b 127.0.0.1:8080
+
+# Terminal 3 - Charlie connects and discovers both
+cargo run --bin p2p-chat -- -u Charlie -b 127.0.0.1:8080
+```
+
+## 🔧 Building
+
+```bash
+# Build the project
+cargo build
+
+# Build with optimizations
+cargo build --release
+```
+
+## 📁 Project Structure
 
 ```
 simple-chat-app/
-├── Cargo.toml          # workspace configuration
-├── server/             # chat server
-│   ├── src/
-│   │   ├── main.rs
-│   │   ├── client/     # client info management
-│   │   ├── state/      # shared state management
-│   │   └── handler/    # message handling
-├── client/             # chat client
-│   ├── src/
-│   │   ├── main.rs
-│   │   ├── connection/ # server connection
-│   │   ├── ui/         # user interface
-│   │   └── chat/       # chat functionality
-└── shared/             # shared library
-    ├── src/
-    │   ├── message/    # message types
-    │   ├── config/     # configuration
-    │   └── utils/      # utility functions
+├── p2p-chat/          # Main P2P chat application
+├── shared/            # Core P2P networking and TLS
+└── README.md          # This file
 ```
 
-## Quick Start
+## 📄 License
 
-### 1. Build the project
-```bash
-cargo build
-```
-
-### 2. Start the server
-```bash
-cargo run --bin server
-```
-
-### 3. Start clients (in separate terminals)
-```bash
-cargo run --bin client
-```
-
-### 4. Enter username and start chatting!
-
-## Configuration
-
-Default settings:
-- **Server**: 127.0.0.1:8080
-- **Max message length**: 1024 characters
-- **Max username length**: 32 characters
-
-## Commands
-
-- Type messages and press Enter to send
-- `/quit` or `/exit` - disconnect gracefully
-- `Ctrl+C` - force exit
-
-## Server Logs
-
-The server displays activity logs:
-```
-[CONNECTION] New client connected from: 127.0.0.1:xxxxx
-[JOIN] User 'alice' joined the chat
-[RELAY] alice: Hello everyone!
-[LEAVE] User 'alice' left the chat
-```
-
-## License
-
-MIT License - see [LICENSE.md](LICENSE.md) for details.
+This project is licensed under the MIT License - see the LICENSE.md file for details.
