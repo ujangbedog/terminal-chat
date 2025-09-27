@@ -3,6 +3,7 @@ mod client;
 
 use ui::display_header;
 use client::P2PChatClient;
+use client::constants::force_cleanup_terminal;
 use std::env;
 use std::net::SocketAddr;
 
@@ -21,6 +22,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with_file(false)
         .with_line_number(false)
         .init();
+
+    // Setup Ctrl+C handler for clean terminal cleanup
+    ctrlc::set_handler(move || {
+        force_cleanup_terminal("Program interrupted");
+    }).expect("Error setting Ctrl+C handler");
 
     display_header();
     

@@ -4,7 +4,7 @@ use crate::client::history::MessageHistory;
 use shared::{P2PEvent, P2PMessage};
 use std::collections::HashMap;
 use std::net::SocketAddr;
-use tracing::{info, error, debug};
+use tracing::{info, error, debug, warn};
 
 /// Event handler for P2P events
 pub struct EventHandler;
@@ -33,9 +33,15 @@ impl EventHandler {
                     "{}*** 🔴 Peer {} disconnected: {}{}",
                     COLOR_YELLOW, &peer_id[..8], reason, COLOR_RESET
                 );
-                info!("Peer disconnected: {} (reason: {})", peer_id, reason);
+                warn!("Peer disconnected: {} (reason: {})", peer_id, reason);
                 history.add_message(formatted_message);
                 history.refresh_display();
+                
+                // Wait a moment to show the disconnect message
+                std::thread::sleep(std::time::Duration::from_millis(1500));
+                
+                // Force terminate the program on any peer disconnect
+                force_cleanup_terminal("Peer disconnected");
             }
             
             P2PEvent::MessageReceived { message, from_peer } => {
@@ -83,6 +89,16 @@ impl EventHandler {
                 error!("P2P Error: {}", error);
                 history.add_message(formatted_message);
                 history.refresh_display();
+                
+                // Check if this is a critical network error that should force termination
+                if error.contains("connection") || error.contains("network") || 
+                   error.contains("timeout") || error.contains("failed") {
+                    // Wait a moment to show the error message
+                    std::thread::sleep(std::time::Duration::from_millis(1500));
+                    
+                    // Force terminate on critical network errors
+                    force_cleanup_terminal("Critical network error");
+                }
             }
         }
     }
