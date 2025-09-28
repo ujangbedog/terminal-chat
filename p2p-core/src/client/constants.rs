@@ -2,8 +2,8 @@
 
 use crossterm::{
     execute,
-    terminal::{LeaveAlternateScreen, Clear, ClearType},
-    cursor::Show,
+    terminal::{Clear, ClearType},
+    cursor::MoveTo,
 };
 use std::io;
 use std::process;
@@ -50,19 +50,14 @@ pub const BOX_T_LEFT: &str = "┤";
 
 /// Force cleanup terminal and exit the program
 /// This function clears the terminal and exits with code 1
-pub fn force_cleanup_terminal(message: &str) -> ! {
-    // Try to clean up the terminal using crossterm
+pub fn force_cleanup_terminal(_message: &str) -> ! {
+    // Clear terminal completely first (like /quit behavior)
     let _ = execute!(
         io::stdout(),
-        LeaveAlternateScreen,
         Clear(ClearType::All),
-        Show
+        MoveTo(0, 0)
     );
     
-    // Print the exit message with color
-    println!("{}*** {} ***{}", COLOR_RED, message, COLOR_RESET);
-    println!("{}Program terminated due to network disconnect{}", COLOR_YELLOW, COLOR_RESET);
-    
-    // Force exit the program
+    // Force exit the program cleanly (no messages to keep terminal clean)
     process::exit(1);
 }

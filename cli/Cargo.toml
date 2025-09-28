@@ -19,3 +19,4 @@ dotenv = "0.15"
 
 # Shared utilities
 shared = { path = "../shared" }
+p2p-core = { path = "../p2p-core" }

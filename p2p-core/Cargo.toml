@@ -3,6 +3,10 @@ name = "p2p-core"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "p2p_core"
+path = "src/lib.rs"
+
 [[bin]]
 name = "p2p-core"
 path = "src/main.rs"

@@ -302,6 +302,18 @@ impl PeerManager {
             info!("Removed peer connection: {}", peer_id);
         }
     }
+    
+    /// Disconnect all peers
+    pub async fn disconnect_all_peers(&self) {
+        let mut connections = self.connections.write().await;
+        
+        info!("Disconnecting all {} peers", connections.len());
+        
+        for (peer_id, connection) in connections.drain() {
+            connection.disconnect("Node shutting down".to_string()).await;
+            info!("Disconnected peer: {}", peer_id);
+        }
+    }
     pub async fn send_to_peer(
         &self,
         peer_id: &str,

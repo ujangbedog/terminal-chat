@@ -58,4 +58,9 @@ impl MessageManager {
         &self.messages
     }
 
+    /// Clear all messages
+    pub fn clear_messages(&mut self) {
+        self.messages.clear();
+    }
+
 }
