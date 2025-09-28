@@ -47,8 +47,8 @@ impl CertificateManager {
 
         // Set distinguished name
         let mut distinguished_name = DistinguishedName::new();
-        distinguished_name.push(DnType::CommonName, format!("P2P-Chat-Peer-{}", self.peer_id));
-        distinguished_name.push(DnType::OrganizationName, "P2P Chat Network");
+        distinguished_name.push(DnType::CommonName, format!("Chat-Client-Peer-{}", self.peer_id));
+        distinguished_name.push(DnType::OrganizationName, "Terminal Chat Network");
         distinguished_name.push(DnType::CountryName, "ID");
         params.distinguished_name = distinguished_name;
 
