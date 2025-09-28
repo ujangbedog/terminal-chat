@@ -1,7 +1,10 @@
-mod ui;
+//! P2P Chat Client
+//! 
+//! Pure P2P chat functionality without CLI interface.
+//! This binary is called by the launcher/CLI when P2P chat is needed.
+
 mod client;
 
-use ui::display_header;
 use client::P2PChatClient;
 use client::constants::force_cleanup_terminal;
 use std::env;
@@ -15,11 +18,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Get log level from environment or default to error
     let log_level = env::var("LOG_LEVEL").unwrap_or_else(|_| "error".to_string());
     
-    // initialize tracing with configurable log level
+    // Initialize tracing with configurable log level
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive(format!("p2p_chat={}", log_level).parse()?)
+                .add_directive(format!("p2p_core={}", log_level).parse()?)
                 .add_directive(format!("shared={}", log_level).parse()?),
         )
         .with_target(false)
@@ -31,12 +34,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Setup Ctrl+C handler for clean terminal cleanup
     ctrlc::set_handler(move || {
-        force_cleanup_terminal("Program interrupted");
+        force_cleanup_terminal("P2P Chat interrupted");
     }).expect("Error setting Ctrl+C handler");
 
-    display_header();
+    // Display header
+    println!("=== Terminal Chat Client - P2P Mode ===");
     
-    // Parse command line arguments
+    // Parse command line arguments and start P2P client
     let args: Vec<String> = env::args().collect();
     run_p2p_client(&args).await?;
 
@@ -131,7 +135,7 @@ async fn run_p2p_client(args: &[String]) -> Result<(), Box<dyn std::error::Error
         // This is likely a bootstrap node, suggest using a specific port
         if default_port == 0 {
             println!("💡 Tip: For bootstrap nodes, use -p <PORT> to specify a port that other peers can connect to");
-            println!("   Example: cargo run --bin chat-client -- -u {} -p 8080", username);
+            println!("   Example: p2p-core -u {} -p 8080", username);
         }
         default_port
     } else {
@@ -149,9 +153,9 @@ async fn run_p2p_client(args: &[String]) -> Result<(), Box<dyn std::error::Error
 }
 
 fn print_help() {
-    println!("\n📖 P2P Chat Help");
+    println!("\n📖 P2P Chat Client Help");
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    println!("Usage: chat-client [OPTIONS]");
+    println!("Usage: p2p-core [OPTIONS]");
     println!("\nOptions:");
     println!("  -u, --username <NAME>     Set username (required)");
     println!("  -p, --port <PORT>         Set listening port (overrides .env DEFAULT_PORT)");
@@ -163,9 +167,9 @@ fn print_help() {
     println!("  Command line options override .env file settings");
     println!("\nNote: TLS encryption is configurable via .env file.");
     println!("\nExamples:");
-    println!("  chat-client -u Alice");
-    println!("  chat-client -u Bob -p 8080");
-    println!("  chat-client -u Charlie --host 0.0.0.0 -p 9000");
-    println!("  chat-client -u David -b 192.168.1.100:8080");
+    println!("  p2p-core -u Alice");
+    println!("  p2p-core -u Bob -p 8080");
+    println!("  p2p-core -u Charlie --host 0.0.0.0 -p 9000");
+    println!("  p2p-core -u David -b 192.168.1.100:8080");
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 }
