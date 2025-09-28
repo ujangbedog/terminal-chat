@@ -2,17 +2,20 @@
 
 use crossterm::{
     execute,
-    terminal::{disable_raw_mode, LeaveAlternateScreen},
-    cursor::Show,
+    terminal::{Clear, ClearType},
+    cursor::MoveTo,
 };
 use std::io::stdout;
 
 /// Force cleanup terminal state and exit
-pub fn force_cleanup_terminal(message: &str) {
-    // Try to cleanup terminal state
-    let _ = disable_raw_mode();
-    let _ = execute!(stdout(), LeaveAlternateScreen, Show);
+pub fn force_cleanup_terminal(_message: &str) {
+    // Clear terminal completely first (like /quit behavior)
+    let _ = execute!(
+        stdout(),
+        Clear(ClearType::All),
+        MoveTo(0, 0)
+    );
     
-    eprintln!("\n{}", message);
+    // Force exit the program cleanly (no messages to keep terminal clean)
     std::process::exit(1);
 }

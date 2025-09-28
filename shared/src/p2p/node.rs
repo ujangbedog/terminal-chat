@@ -158,7 +158,6 @@ impl P2PNode {
 
         // Connect to bootstrap peers
         self.connect_to_bootstrap_peers().await;
-
         info!("P2P node started successfully");
         Ok(())
     }
@@ -167,7 +166,7 @@ impl P2PNode {
     pub async fn stop(&mut self) {
         info!("Stopping P2P node {}", self.peer_id);
 
-        // Set running flag to false
+        // Set running flag to false first
         {
             let mut running = self.running.write().await;
             *running = false;
@@ -180,8 +179,20 @@ impl P2PNode {
         };
         
         self.peer_manager.broadcast_message(disconnect_msg).await;
+        
+        // Give a moment for disconnect messages to be sent
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        
+        // Stop peer discovery
+        self.peer_discovery.stop().await;
+        
+        // Disconnect all peers
+        self.peer_manager.disconnect_all_peers().await;
+        
+        // Give a moment for cleanup
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
 
-        info!("P2P node stopped");
+        info!("P2P node stopped completely");
     }
 
     /// Send a chat message to the network

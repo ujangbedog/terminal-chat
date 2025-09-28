@@ -64,6 +64,7 @@ pub struct PeerDiscovery {
     discovery_methods: Vec<DiscoveryMethod>,
     discovered_peers: std::collections::HashMap<String, DiscoveredPeer>,
     protocol_version: String,
+    running: std::sync::Arc<tokio::sync::RwLock<bool>>,
 }
 
 impl PeerDiscovery {
@@ -81,11 +82,18 @@ impl PeerDiscovery {
             discovery_methods,
             discovered_peers: std::collections::HashMap::new(),
             protocol_version: "1.0".to_string(),
+            running: std::sync::Arc::new(tokio::sync::RwLock::new(false)),
         }
     }
 
     /// Start the discovery service
     pub async fn start(&mut self) -> Result<tokio::sync::mpsc::Receiver<DiscoveredPeer>, Box<dyn std::error::Error + Send + Sync>> {
+        // Set running flag
+        {
+            let mut running = self.running.write().await;
+            *running = true;
+        }
+        
         let (tx, rx) = tokio::sync::mpsc::channel(100);
 
         for method in &self.discovery_methods {
@@ -103,6 +111,13 @@ impl PeerDiscovery {
         }
 
         Ok(rx)
+    }
+    
+    /// Stop the discovery service
+    pub async fn stop(&mut self) {
+        info!("Stopping peer discovery");
+        let mut running = self.running.write().await;
+        *running = false;
     }
 
     /// Start multicast discovery
@@ -124,6 +139,7 @@ impl PeerDiscovery {
         let username = self.username.clone();
         let listen_addr = self.listen_addr;
         let protocol_version = self.protocol_version.clone();
+        let running = self.running.clone();
 
         // Spawn announcement task
         let announce_socket = UdpSocket::bind("0.0.0.0:0").await?;
@@ -132,9 +148,10 @@ impl PeerDiscovery {
             std::net::Ipv4Addr::UNSPECIFIED,
         )?;
         let peer_id_announce = peer_id.clone();
+        let running_announce = running.clone();
         tokio::spawn(async move {
             let mut interval = interval(Duration::from_secs(30));
-            loop {
+            while *running_announce.read().await {
                 interval.tick().await;
                 
                 let announce_msg = DiscoveryMessage::Announce {
@@ -161,9 +178,10 @@ impl PeerDiscovery {
         // Spawn listener task
         let listen_socket = socket;
         let tx_clone = tx.clone();
+        let running_listen = running.clone();
         tokio::spawn(async move {
             let mut buf = [0u8; 1024];
-            loop {
+            while *running_listen.read().await {
                 match listen_socket.recv_from(&mut buf).await {
                     Ok((len, from_addr)) => {
                         if let Ok(msg) = serde_json::from_slice::<DiscoveryMessage>(&buf[..len]) {
