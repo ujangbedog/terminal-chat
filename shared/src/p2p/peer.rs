@@ -10,7 +10,6 @@ use tokio::time::{interval, Duration};
 use tokio_util::codec::{FramedRead, FramedWrite, LinesCodec};
 use futures::{SinkExt, StreamExt};
 use tracing::{info, warn, error, debug};
-use uuid::Uuid;
 
 /// Represents a connected peer
 #[derive(Debug)]
@@ -225,7 +224,9 @@ impl PeerConnection {
 /// Manages all peer connections
 #[derive(Clone)]
 pub struct PeerManager {
+    #[allow(dead_code)]
     local_peer_id: String,
+    #[allow(dead_code)]
     local_username: String,
     connections: Arc<RwLock<HashMap<String, PeerConnection>>>,
     message_tx: mpsc::Sender<(P2PMessage, String)>,
@@ -369,7 +370,7 @@ impl PeerManager {
     pub async fn update_peer_heartbeat(&self, peer_id: &str) {
         let mut connections = self.connections.write().await;
         
-        if let Some(connection) = connections.get_mut(peer_id) {
+        if let Some(_connection) = connections.get_mut(peer_id) {
             // Note: This is a simplified approach. In a real implementation,
             // you might want to use Arc<Mutex<Peer>> for interior mutability
             debug!("Updated heartbeat for peer {}", peer_id);

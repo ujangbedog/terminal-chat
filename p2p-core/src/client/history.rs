@@ -57,6 +57,7 @@ impl MessageHistory {
     }
 
     /// Get current message count
+    #[allow(dead_code)]
     pub fn message_count(&self) -> usize {
         self.messages.borrow().len()
     }
