@@ -11,6 +11,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone)]
 pub struct RoutingTable {
     /// Local peer ID
+    #[allow(dead_code)]
     local_peer_id: String,
     /// Connected peers
     peers: Arc<RwLock<HashMap<String, PeerInfo>>>,

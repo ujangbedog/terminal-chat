@@ -1,7 +1,7 @@
 /// Command handling for P2P chat client
 use crate::client::constants::*;
 use crate::client::history::MessageHistory;
-use shared::{P2PNode, P2PMessage};
+use shared::P2PNode;
 use tracing::{info, error};
 
 /// Command handler for chat commands and user input

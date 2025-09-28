@@ -4,8 +4,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::net::UdpSocket;
 use tokio::time::{interval, timeout};
 use serde::{Deserialize, Serialize};
-use tracing::{info, warn, error, debug};
-use uuid::Uuid;
+use tracing::{info, warn, debug};
 
 /// Discovery methods for finding peers
 #[derive(Debug, Clone)]
