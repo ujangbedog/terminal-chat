@@ -1,0 +1,21 @@
+[package]
+name = "cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Professional CLI libraries
+clap = { version = "4.4", features = ["derive", "env"] }
+indicatif = "0.17"
+dialoguer = { version = "0.11", features = ["completion", "history"] }
+colored = "2.0"
+crossterm = "0.27"
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# Environment and configuration
+dotenv = "0.15"
+
+# Shared utilities
+shared = { path = "../shared" }
