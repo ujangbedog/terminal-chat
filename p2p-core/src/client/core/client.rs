@@ -1,7 +1,6 @@
 //! Main P2P Chat Client implementation
 
 use crate::ui::{ChatUI, MessageType};
-use super::super::constants::*;
 use super::super::history::MessageHistory;
 use super::{EventHandler, CommandHandler};
 
@@ -11,7 +10,6 @@ use std::net::SocketAddr;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tracing::{info, error, warn};
-use colored::*;
 
 /// P2P Chat Client with beautiful UI
 pub struct P2PChatClient {
@@ -23,6 +21,16 @@ pub struct P2PChatClient {
     history: MessageHistory,
     connected_peers: HashMap<String, String>, // peer_id -> username
     peer_addresses: HashMap<String, SocketAddr>, // peer_id -> address
+    is_owner: bool, // true if this is the bootstrap/owner node
+    quit_reason: QuitReason, // reason for quitting
+}
+
+/// Reason for quitting the chat
+#[derive(Debug, Clone, PartialEq)]
+pub enum QuitReason {
+    UserQuit,       // User typed /quit
+    OwnerDisconnect, // Owner disconnected
+    NetworkError,   // Network error
 }
 
 impl P2PChatClient {
@@ -42,6 +50,9 @@ impl P2PChatClient {
         } else {
             format!("{}:{}", host, port).parse()?
         };
+
+        // Determine if this is an owner node (no bootstrap peers = owner)
+        let is_owner = bootstrap_peers.is_empty();
 
         // Configure P2P node
         let config = P2PNodeConfig {
@@ -66,7 +77,7 @@ impl P2PChatClient {
         node.start().await?;
 
         // Create beautiful chat UI
-        let chat_ui = ChatUI::new(username.clone(), 100)?;
+        let chat_ui = ChatUI::new(username.clone(), listen_port.clone(), 100)?;
 
         Ok(Self {
             node,
@@ -77,6 +88,8 @@ impl P2PChatClient {
             history: MessageHistory::new(100),
             connected_peers: HashMap::new(),
             peer_addresses: HashMap::new(),
+            is_owner,
+            quit_reason: QuitReason::UserQuit,
         })
     }
 
@@ -119,9 +132,9 @@ impl P2PChatClient {
         // Create a channel for input handling
         let (input_tx, mut input_rx) = tokio::sync::mpsc::channel::<String>(100);
         
-        // Spawn input handling task
+        // Spawn input handling task with proper cleanup
         let input_tx_clone = input_tx.clone();
-        tokio::spawn(async move {
+        let input_handle = tokio::spawn(async move {
             loop {
                 let input = tokio::task::spawn_blocking(|| {
                     use std::io::{stdin, BufRead};
@@ -193,6 +206,20 @@ impl P2PChatClient {
             }
         }
 
+        // Close the input channel to signal shutdown
+        drop(input_tx);
+        
+        // Give input task a brief moment to finish naturally
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+        
+        // If still running, abort it (this may cause IO error but we'll handle it)
+        if !input_handle.is_finished() {
+            input_handle.abort();
+        }
+        
+        // Give a moment for cleanup
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+        
         Ok(())
     }
 
@@ -214,7 +241,7 @@ impl P2PChatClient {
                 &mut self.chat_ui,
                 &self.connected_peers,
                 &self.peer_addresses,
-                &self.history,
+                self.is_owner,
             ).await;
         }
         
@@ -252,6 +279,22 @@ impl P2PChatClient {
         Ok(true)
     }
 
+    /// Get the quit reason
+    pub fn get_quit_reason(&self) -> QuitReason {
+        self.quit_reason.clone()
+    }
+
+    /// Check if this client is the owner/bootstrap node
+    pub fn is_owner(&self) -> bool {
+        self.is_owner
+    }
+
+    /// Set quit reason
+    #[allow(dead_code)]
+    fn set_quit_reason(&mut self, reason: QuitReason) {
+        self.quit_reason = reason;
+    }
+
     /// Shutdown the client
     async fn shutdown(&mut self) {
         self.running = false;
@@ -263,9 +306,18 @@ impl P2PChatClient {
             MessageType::SystemMessage,
         ).ok();
         
-        // Give a moment for the message to display
-        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+        // Minimal delay for message display
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
         
-        println!("\n{}*** Thanks for using P2P Terminal Chat! 👋 ***{}", COLOR_BOLD.bright_green(), COLOR_RESET);
+        // Properly stop the P2P node to disconnect from all peers
+        info!("Stopping P2P node...");
+        self.node.stop().await;
+        
+        // Wait for all background tasks to finish
+        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+        
+        // Force yield to let tokio cleanup
+        tokio::task::yield_now().await;
     }
+    
 }

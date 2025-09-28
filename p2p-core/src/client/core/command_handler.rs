@@ -1,7 +1,6 @@
 //! Command handling for P2P chat client
 
 use crate::ui::{ChatUI, MessageType};
-use super::super::history::MessageHistory;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 
@@ -15,7 +14,7 @@ impl CommandHandler {
         chat_ui: &mut ChatUI,
         connected_peers: &HashMap<String, String>,
         peer_addresses: &HashMap<String, SocketAddr>,
-        history: &MessageHistory,
+        is_owner: bool,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         let parts: Vec<&str> = command.split_whitespace().collect();
         
@@ -24,21 +23,40 @@ impl CommandHandler {
                 Self::show_help(chat_ui).await?;
             }
             Some(&"/quit") | Some(&"/exit") => {
-                chat_ui.add_message(
-                    "System".to_string(),
-                    "👋 Goodbye! Shutting down...".to_string(),
-                    MessageType::SystemMessage,
-                )?;
-                return Ok(false);
+                // Show appropriate goodbye message
+                if is_owner {
+                    chat_ui.add_message(
+                        "System".to_string(),
+                        "👋 Owner disconnecting. Goodbye!".to_string(),
+                        MessageType::SystemMessage,
+                    )?;
+                } else {
+                    chat_ui.add_message(
+                        "System".to_string(),
+                        "👋 Goodbye! Exiting program...".to_string(),
+                        MessageType::SystemMessage,
+                    )?;
+                }
+                
+                // Brief delay for message display
+                tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                
+                // Clear terminal before exit
+                use crossterm::{execute, terminal::{Clear, ClearType}, cursor::MoveTo};
+                use std::io;
+                execute!(io::stdout(), Clear(ClearType::All), MoveTo(0, 0)).ok();
+                
+                // Exit program directly - both owner and peer
+                std::process::exit(0);
             }
             Some(&"/peers") => {
                 Self::show_peers(chat_ui, connected_peers, peer_addresses).await?;
             }
             Some(&"/clear") => {
-                chat_ui.refresh_display()?;
+                chat_ui.clear_chat()?;
             }
-            Some(&"/history") => {
-                Self::show_history(chat_ui, history).await?;
+            Some(&"/stats") => {
+                Self::show_stats(chat_ui, connected_peers, peer_addresses).await?;
             }
             Some(cmd) => {
                 chat_ui.add_message(
@@ -59,7 +77,7 @@ impl CommandHandler {
             "📖 Available Commands:",
             "/help     - Show this help message",
             "/peers    - List connected peers", 
-            "/history  - Show message history",
+            "/stats    - Show detailed peer statistics",
             "/clear    - Clear chat display",
             "/quit     - Exit the chat",
             "",
@@ -115,35 +133,86 @@ impl CommandHandler {
         Ok(())
     }
 
-    /// Show message history
-    async fn show_history(
+    /// Show detailed peer statistics
+    async fn show_stats(
         chat_ui: &mut ChatUI,
-        _history: &MessageHistory,
+        connected_peers: &HashMap<String, String>,
+        peer_addresses: &HashMap<String, SocketAddr>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // Get recent messages from history (placeholder for now)
-        let messages = vec!["Message history feature coming soon...".to_string()];
-        
-        if messages.is_empty() {
+        if connected_peers.is_empty() {
             chat_ui.add_message(
                 "System".to_string(),
-                "📜 No message history available".to_string(),
+                "📊 No peers currently connected".to_string(),
                 MessageType::SystemMessage,
             )?;
-        } else {
+            return Ok(());
+        }
+
+        chat_ui.add_message(
+            "System".to_string(),
+            "📊 Detailed Peer Statistics:".to_string(),
+            MessageType::SystemMessage,
+        )?;
+        
+        chat_ui.add_message(
+            "System".to_string(),
+            format!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"),
+            MessageType::SystemMessage,
+        )?;
+
+        for (peer_id, username) in connected_peers {
+            let addr = peer_addresses.get(peer_id);
+            
             chat_ui.add_message(
                 "System".to_string(),
-                "📜 Recent Message History:".to_string(),
-                MessageType::SystemMessage,
+                format!("🔗 Peer ID: {}", &peer_id[..8]), // Show first 8 chars of peer ID
+                MessageType::ConnectionInfo,
             )?;
             
-            for msg in messages {
+            chat_ui.add_message(
+                "System".to_string(),
+                format!("👤 Username: {}", username),
+                MessageType::ConnectionInfo,
+            )?;
+            
+            if let Some(socket_addr) = addr {
                 chat_ui.add_message(
                     "System".to_string(),
-                    format!("  {}", msg),
+                    format!("🌐 Host: {}", socket_addr.ip()),
+                    MessageType::ConnectionInfo,
+                )?;
+                
+                chat_ui.add_message(
+                    "System".to_string(),
+                    format!("🔌 Port: {}", socket_addr.port()),
+                    MessageType::ConnectionInfo,
+                )?;
+                
+                chat_ui.add_message(
+                    "System".to_string(),
+                    format!("📍 Full Address: {}", socket_addr),
+                    MessageType::ConnectionInfo,
+                )?;
+            } else {
+                chat_ui.add_message(
+                    "System".to_string(),
+                    "❓ Address: Unknown".to_string(),
                     MessageType::SystemMessage,
                 )?;
             }
+            
+            chat_ui.add_message(
+                "System".to_string(),
+                "─────────────────────────────────────────────────────────────────────────────".to_string(),
+                MessageType::SystemMessage,
+            )?;
         }
+        
+        chat_ui.add_message(
+            "System".to_string(),
+            format!("📈 Total Connected Peers: {}", connected_peers.len()),
+            MessageType::SystemMessage,
+        )?;
         
         Ok(())
     }

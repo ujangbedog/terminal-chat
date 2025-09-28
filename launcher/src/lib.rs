@@ -12,17 +12,13 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
     
     // Get log level from environment or default to error
-    let log_level = env::var("LOG_LEVEL").unwrap_or_else(|_| "error".to_string());
+    let _log_level = env::var("LOG_LEVEL").unwrap_or_else(|_| "error".to_string());
     
-    // Initialize tracing with configurable log level
+    // Initialize tracing with minimal logging to avoid UI interference
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive(format!("launcher={}", log_level).parse()?)
-                .add_directive(format!("cli={}", log_level).parse()?)
-                .add_directive(format!("terminal_chat={}", log_level).parse()?)
-                .add_directive(format!("p2p_core={}", log_level).parse()?)
-                .add_directive(format!("shared={}", log_level).parse()?),
+                .add_directive("off".parse()?) // Disable all logs
         )
         .with_target(false)
         .with_thread_ids(false)

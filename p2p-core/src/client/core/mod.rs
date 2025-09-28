@@ -6,6 +6,6 @@ pub mod client;
 pub mod event_handler;
 pub mod command_handler;
 
-pub use client::P2PChatClient;
+pub use client::{P2PChatClient, QuitReason};
 pub use event_handler::EventHandler;
 pub use command_handler::CommandHandler;
