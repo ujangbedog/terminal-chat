@@ -10,12 +10,15 @@ use std::process;
 
 // ANSI color codes for terminal
 pub const COLOR_RESET: &str = "\x1b[0m";
+#[allow(dead_code)]
 pub const COLOR_GREEN: &str = "\x1b[32m";
 #[allow(dead_code)]
 pub const COLOR_BLUE: &str = "\x1b[34m";
 pub const COLOR_YELLOW: &str = "\x1b[33m";
+#[allow(dead_code)]
 pub const COLOR_CYAN: &str = "\x1b[36m";
 pub const COLOR_BOLD: &str = "\x1b[1m";
+#[allow(dead_code)]
 pub const COLOR_DIM: &str = "\x1b[2m";
 #[allow(dead_code)]
 pub const COLOR_WHITE: &str = "\x1b[37m";

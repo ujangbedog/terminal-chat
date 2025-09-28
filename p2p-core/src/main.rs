@@ -4,8 +4,9 @@
 //! This binary is called by the launcher/CLI when P2P chat is needed.
 
 mod client;
+mod ui;
 
-use client::P2PChatClient;
+use client::core::P2PChatClient;
 use client::constants::force_cleanup_terminal;
 use std::env;
 use std::net::SocketAddr;
@@ -37,8 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         force_cleanup_terminal("P2P Chat interrupted");
     }).expect("Error setting Ctrl+C handler");
 
-    // Display header
-    println!("=== Terminal Chat Client - P2P Mode ===");
+    // Header will be displayed by the enhanced UI
     
     // Parse command line arguments and start P2P client
     let args: Vec<String> = env::args().collect();
@@ -48,7 +48,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn run_p2p_client(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
-    println!("🚀 Starting P2P Chat");
     
     // Get default values from environment variables
     let default_host = env::var("DEFAULT_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
