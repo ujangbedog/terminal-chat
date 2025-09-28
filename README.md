@@ -1,4 +1,4 @@
-# P2P Chat Application
+# Terminal Chat Application
 
 A simple peer-to-peer chat application built with Rust featuring TLS encryption and decentralized networking.
 
@@ -29,20 +29,19 @@ LOG_LEVEL=error
 
 ```bash
 # Start bootstrap node (first peer) - MUST specify port
-cargo run --bin p2p-chat -- -u Alice -p 8080
+cargo run --bin chat-client -- -u Alice -p 8080
 
 # For external connections, use 0.0.0.0
-cargo run --bin p2p-chat -- -u Alice --host 0.0.0.0 -p 8080
+cargo run --bin chat-client -- -u Alice --host 0.0.0.0 -p 8080
 
 # Connect to bootstrap (in another terminal) - uses random port automatically
-cargo run --bin p2p-chat -- -u Bob -b 127.0.0.1:8080
-cargo run --bin p2p-chat -- -u Bob -b 192.168.1.106:8080  # for external IP
+cargo run --bin chat-client -- -u Bob -b 127.0.0.1:8080
+cargo run --bin chat-client -- -u Bob -b 192.168.1.106:8080  # for external IP
 
 # Multiple clients can connect to the same bootstrap
-cargo run --bin p2p-chat -- -u Charlie -b 192.168.1.106:8080
-```
+cargo run --bin chat-client -- -u Charlie -b 192.168.1.106:8080
 
-## 📖 Usage
+## Usage
 
 ### Command Line Options
 - `-u, --username <NAME>` - Set your username (required)
@@ -70,16 +69,16 @@ cargo run --bin p2p-chat -- -u Charlie -b 192.168.1.106:8080
 ### Example
 ```bash
 # Terminal 1 - Start Alice as bootstrap
-cargo run --bin p2p-chat -- -u Alice -p 8080
+cargo run --bin chat-client -- -u Alice -p 8080
 
 # Terminal 2 - Bob connects to Alice
-cargo run --bin p2p-chat -- -u Bob -b 127.0.0.1:8080
+cargo run --bin chat-client -- -u Bob -b 127.0.0.1:8080
 
 # Terminal 3 - Charlie connects and discovers both
-cargo run --bin p2p-chat -- -u Charlie -b 127.0.0.1:8080
+cargo run --bin chat-client -- -u Charlie -b 127.0.0.1:8080
 ```
 
-## 🔧 Building
+## Building
 
 ```bash
 # Build the project
@@ -89,15 +88,10 @@ cargo build
 cargo build --release
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-simple-chat-app/
-├── p2p-chat/          # Main P2P chat application
+terminal-chat/
+├── chat-client/       # Main chat client application
 ├── shared/            # Core P2P networking and TLS
 └── README.md          # This file
-```
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
