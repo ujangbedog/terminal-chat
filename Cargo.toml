@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "p2p-chat",
+    "chat-client",
     "shared"
 ]
 resolver = "2"
