@@ -131,7 +131,7 @@ async fn run_p2p_client(args: &[String]) -> Result<(), Box<dyn std::error::Error
         // This is likely a bootstrap node, suggest using a specific port
         if default_port == 0 {
             println!("💡 Tip: For bootstrap nodes, use -p <PORT> to specify a port that other peers can connect to");
-            println!("   Example: cargo run --bin p2p-chat -- -u {} -p 8080", username);
+            println!("   Example: cargo run --bin chat-client -- -u {} -p 8080", username);
         }
         default_port
     } else {
@@ -151,7 +151,7 @@ async fn run_p2p_client(args: &[String]) -> Result<(), Box<dyn std::error::Error
 fn print_help() {
     println!("\n📖 P2P Chat Help");
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    println!("Usage: p2p-chat [OPTIONS]");
+    println!("Usage: chat-client [OPTIONS]");
     println!("\nOptions:");
     println!("  -u, --username <NAME>     Set username (required)");
     println!("  -p, --port <PORT>         Set listening port (overrides .env DEFAULT_PORT)");
@@ -163,9 +163,9 @@ fn print_help() {
     println!("  Command line options override .env file settings");
     println!("\nNote: TLS encryption is configurable via .env file.");
     println!("\nExamples:");
-    println!("  p2p-chat -u Alice");
-    println!("  p2p-chat -u Bob -p 8080");
-    println!("  p2p-chat -u Charlie --host 0.0.0.0 -p 9000");
-    println!("  p2p-chat -u David -b 192.168.1.100:8080");
+    println!("  chat-client -u Alice");
+    println!("  chat-client -u Bob -p 8080");
+    println!("  chat-client -u Charlie --host 0.0.0.0 -p 9000");
+    println!("  chat-client -u David -b 192.168.1.100:8080");
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 }
