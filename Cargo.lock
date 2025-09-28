@@ -222,6 +222,7 @@ dependencies = [
  "dialoguer",
  "dotenv",
  "indicatif",
+ "p2p-core",
  "shared",
  "tokio",
 ]
