@@ -1,6 +1,7 @@
 //! Interactive menu using dialoguer for professional UX
 
 use std::process::Command;
+use std::net::SocketAddr;
 use colored::*;
 use dialoguer::{theme::ColorfulTheme, Select, Input, Confirm};
 use indicatif::{ProgressBar, ProgressStyle};
@@ -153,8 +154,8 @@ impl InteractiveMenu {
             args.push(b);
         }
 
-        // Start P2P chat using external binary
-        self.run_chat_client(&args).await
+        // Start P2P chat using library function
+        self.run_chat_client_library(&args).await
     }
 
     /// Handle settings menu
@@ -284,8 +285,96 @@ impl InteractiveMenu {
     pub fn show_info(&self, message: &str) {
         println!("{} {}", "ℹ️  Info:".bright_blue().bold(), message.blue());
     }
+    
 
-    /// Run external p2p-core binary
+    /// Run P2P chat client as library function
+    async fn run_chat_client_library(&self, args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
+        println!("{}", "🚀 Launching P2P Chat Client...".bright_cyan().bold());
+        
+        // Parse arguments
+        let mut username = "Anonymous".to_string();
+        let mut listen_port: Option<u16> = None;
+        let mut bootstrap_peers: Vec<SocketAddr> = vec![];
+        let mut custom_host: Option<String> = None;
+        let enable_tls = std::env::var("TLS_ENABLED")
+            .unwrap_or_else(|_| "true".to_string())
+            .parse::<bool>()
+            .unwrap_or(true);
+        
+        let mut i = 1; // Skip program name
+        while i < args.len() {
+            match args[i].as_str() {
+                "-u" => {
+                    if i + 1 < args.len() {
+                        username = args[i + 1].clone();
+                        i += 2;
+                    } else {
+                        return Err("Username requires a value".into());
+                    }
+                }
+                "-p" => {
+                    if i + 1 < args.len() {
+                        listen_port = Some(args[i + 1].parse()?);
+                        i += 2;
+                    } else {
+                        return Err("Port requires a value".into());
+                    }
+                }
+                "--host" => {
+                    if i + 1 < args.len() {
+                        custom_host = Some(args[i + 1].clone());
+                        i += 2;
+                    } else {
+                        return Err("Host requires a value".into());
+                    }
+                }
+                "-b" => {
+                    if i + 1 < args.len() {
+                        let addr: SocketAddr = args[i + 1].parse()?;
+                        bootstrap_peers.push(addr);
+                        i += 2;
+                    } else {
+                        return Err("Bootstrap requires a value".into());
+                    }
+                }
+                _ => {
+                    i += 1;
+                }
+            }
+        }
+        
+        // Determine final host
+        let final_host = custom_host.unwrap_or_else(|| {
+            std::env::var("DEFAULT_HOST").unwrap_or_else(|_| "127.0.0.1".to_string())
+        });
+        
+        // Run P2P chat and get quit reason
+        let result = p2p_core::run_p2p_chat(username, Some(final_host), listen_port, bootstrap_peers, enable_tls).await;
+        
+        match result {
+            Ok(quit_reason) => {
+                match quit_reason {
+                    p2p_core::QuitReason::UserQuit => {
+                        println!("{}", "✅ Returned to main menu".bright_green());
+                    }
+                    p2p_core::QuitReason::OwnerDisconnect => {
+                        println!("{}", "⚠️  Owner disconnected, returning to menu".bright_yellow());
+                    }
+                    p2p_core::QuitReason::NetworkError => {
+                        println!("{}", "❌ Network error, returning to menu".bright_red());
+                    }
+                }
+                Ok(())
+            }
+            Err(e) => {
+                self.show_error(&format!("Chat client error: {}", e));
+                Err(e)
+            }
+        }
+    }
+
+    /// Run external p2p-core binary (fallback method)
+    #[allow(dead_code)]
     async fn run_chat_client(&self, args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
         println!("{}", "🚀 Launching P2P Chat Client...".bright_cyan().bold());
         

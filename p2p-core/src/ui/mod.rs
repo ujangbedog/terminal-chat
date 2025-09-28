@@ -21,6 +21,7 @@ use std::io;
 /// Main chat UI coordinator
 pub struct ChatUI {
     username: String,
+    listen_port: Option<u16>,
     terminal_width: u16,
     terminal_height: u16,
     chat_area_height: u16,
@@ -32,12 +33,13 @@ pub struct ChatUI {
 
 impl ChatUI {
     /// Create new chat UI
-    pub fn new(username: String, max_messages: usize) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn new(username: String, listen_port: Option<u16>, max_messages: usize) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let (width, height) = terminal::size()?;
         let chat_area_height = height.saturating_sub(8); // Reserve space for header and input
         
         Ok(Self {
             username: username.clone(),
+            listen_port,
             terminal_width: width,
             terminal_height: height,
             chat_area_height,
@@ -53,7 +55,7 @@ impl ChatUI {
         // Clear screen
         execute!(io::stdout(), Clear(ClearType::All), MoveTo(0, 0))?;
         
-        self.display_manager.draw_header(&self.username, &self.connected_peers)?;
+        self.display_manager.draw_header(&self.username, self.listen_port, &self.connected_peers)?;
         self.display_manager.draw_chat_area(self.chat_area_height, &self.message_manager.get_messages())?;
         self.display_manager.draw_input_area(&self.username, self.chat_area_height)?;
         
@@ -76,7 +78,7 @@ impl ChatUI {
     /// Update connected peers list
     pub fn update_connected_peers(&mut self, peers: Vec<String>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         self.connected_peers = peers;
-        self.display_manager.draw_header(&self.username, &self.connected_peers)?;
+        self.display_manager.draw_header(&self.username, self.listen_port, &self.connected_peers)?;
         Ok(())
     }
 
@@ -90,7 +92,7 @@ impl ChatUI {
             self.display_manager.update_size(width, height);
         }
         
-        self.display_manager.draw_header(&self.username, &self.connected_peers)?;
+        self.display_manager.draw_header(&self.username, self.listen_port, &self.connected_peers)?;
         self.display_manager.draw_chat_area(self.chat_area_height, &self.message_manager.get_messages())?;
         self.display_manager.draw_input_area(&self.username, self.chat_area_height)?;
         Ok(())
@@ -114,6 +116,20 @@ impl ChatUI {
     /// Show welcome screen
     pub fn show_welcome(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         self.display_manager.show_welcome()
+    }
+
+    /// Clear all chat messages and refresh display
+    pub fn clear_chat(&mut self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        // Clear all messages
+        self.message_manager.clear_messages();
+        
+        // Refresh display to show empty chat area
+        self.refresh_display()?;
+        
+        // Reposition cursor to input area
+        self.position_cursor_for_input()?;
+        
+        Ok(())
     }
 
 }
