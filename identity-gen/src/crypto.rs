@@ -6,6 +6,7 @@ use aes_gcm::{
 };
 use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
 use rand::rngs::OsRng as StdOsRng;
+use base64::{Engine as _, engine::general_purpose};
 
 use crate::error::{IdentityError, Result};
 
@@ -73,15 +74,12 @@ impl Encryption {
             .encrypt(&nonce, secret_key)
             .map_err(|e| IdentityError::Encryption(e.to_string()))?;
         
-        // Combine salt + nonce + ciphertext
-        let mut result = Vec::new();
-        result.extend_from_slice(salt.as_str().as_bytes());
-        result.push(b'|'); // separator
-        result.extend_from_slice(&nonce);
-        result.push(b'|'); // separator
-        result.extend_from_slice(&ciphertext);
+        // Combine salt + nonce + ciphertext with base64 encoding for binary data
+        let nonce_b64 = general_purpose::STANDARD.encode(&nonce);
+        let ciphertext_b64 = general_purpose::STANDARD.encode(&ciphertext);
         
-        Ok(result)
+        let combined = format!("{}|{}|{}", salt.as_str(), nonce_b64, ciphertext_b64);
+        Ok(combined.into_bytes())
     }
     
     pub fn decrypt_secret_key(encrypted_data: &[u8], password: &str) -> Result<Vec<u8>> {
@@ -95,8 +93,12 @@ impl Encryption {
         }
         
         let salt_str = parts[0];
-        let nonce_bytes = parts[1].as_bytes();
-        let ciphertext = parts[2].as_bytes();
+        let nonce_bytes = general_purpose::STANDARD
+            .decode(parts[1])
+            .map_err(|e| IdentityError::Decryption(format!("Invalid nonce base64: {}", e)))?;
+        let ciphertext = general_purpose::STANDARD
+            .decode(parts[2])
+            .map_err(|e| IdentityError::Decryption(format!("Invalid ciphertext base64: {}", e)))?;
         
         // Recreate password hash
         let salt = SaltString::from_b64(salt_str)
@@ -114,10 +116,10 @@ impl Encryption {
         
         // Decrypt
         let cipher = Aes256Gcm::new(key);
-        let nonce = Nonce::from_slice(nonce_bytes);
+        let nonce = Nonce::from_slice(&nonce_bytes);
         
         let plaintext = cipher
-            .decrypt(nonce, ciphertext)
+            .decrypt(nonce, ciphertext.as_slice())
             .map_err(|e| IdentityError::Decryption(e.to_string()))?;
         
         Ok(plaintext)
