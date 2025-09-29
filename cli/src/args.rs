@@ -56,6 +56,18 @@ pub enum Commands {
         #[arg(long)]
         show: bool,
     },
+    /// Generate cryptographic identity
+    GenerateKey {
+        /// Username for the identity
+        #[arg(short, long)]
+        username: Option<String>,
+        
+        /// Expiration time in days (optional)
+        #[arg(short, long)]
+        expires_days: Option<i64>,
+    },
+    /// List existing cryptographic identities
+    List,
 }
 
 impl Cli {
