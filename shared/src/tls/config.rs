@@ -38,8 +38,8 @@ impl Default for TlsConfig {
             cert_path: None,
             key_path: None,
             verify_peer_certs: false, // For P2P, we use trust-on-first-use
-            min_tls_version: TlsVersion::V1_2,
-            max_tls_version: TlsVersion::V1_3,
+            min_tls_version: TlsVersion::V1_3, // Enforce TLS 1.3 minimum
+            max_tls_version: TlsVersion::V1_3, // Only allow TLS 1.3
             allowed_cipher_suites: vec![],
         }
     }
@@ -51,10 +51,12 @@ impl TlsConfig {
         Self::default()
     }
 
-    /// Enable TLS with default settings
+    /// Enable TLS with TLS 1.3 enforcement
     pub fn enabled() -> Self {
         Self {
             enabled: true,
+            min_tls_version: TlsVersion::V1_3,
+            max_tls_version: TlsVersion::V1_3,
             ..Default::default()
         }
     }
@@ -80,17 +82,46 @@ impl TlsConfig {
         self
     }
 
-    /// Set TLS version range
-    pub fn with_tls_versions(mut self, min: TlsVersion, max: TlsVersion) -> Self {
-        self.min_tls_version = min;
-        self.max_tls_version = max;
+    /// Set TLS version range (enforces TLS 1.3 only)
+    pub fn with_tls_versions(mut self, _min: TlsVersion, _max: TlsVersion) -> Self {
+        // Force TLS 1.3 only regardless of input
+        self.min_tls_version = TlsVersion::V1_3;
+        self.max_tls_version = TlsVersion::V1_3;
         self
+    }
+
+    /// Create a TLS 1.3 only configuration (recommended)
+    pub fn tls13_only() -> Self {
+        Self {
+            enabled: true,
+            cert_path: None,
+            key_path: None,
+            verify_peer_certs: false,
+            min_tls_version: TlsVersion::V1_3,
+            max_tls_version: TlsVersion::V1_3,
+            allowed_cipher_suites: vec![],
+        }
+    }
+
+    /// Check if configuration enforces TLS 1.3
+    pub fn is_tls13_only(&self) -> bool {
+        matches!(
+            (&self.min_tls_version, &self.max_tls_version),
+            (TlsVersion::V1_3, TlsVersion::V1_3)
+        )
     }
 
     /// Validate the configuration
     pub fn validate(&self) -> Result<(), String> {
         if !self.enabled {
             return Ok(());
+        }
+
+        // Enforce TLS 1.3 only
+        match (&self.min_tls_version, &self.max_tls_version) {
+            (TlsVersion::V1_2, _) => return Err("TLS 1.2 is not allowed. Only TLS 1.3 is supported.".to_string()),
+            (_, TlsVersion::V1_2) => return Err("TLS 1.2 is not allowed. Only TLS 1.3 is supported.".to_string()),
+            (TlsVersion::V1_3, TlsVersion::V1_3) => {}, // Valid
         }
 
         // If cert_path is provided, key_path must also be provided
@@ -129,7 +160,7 @@ impl Default for P2PConfig {
     fn default() -> Self {
         Self {
             listen_addr: "127.0.0.1:0".parse().unwrap(), // Random port
-            tls: TlsConfig::enabled(),
+            tls: TlsConfig::tls13_only(), // Enforce TLS 1.3 only
             bootstrap_peers: vec![],
             max_connections: 50,
             connection_timeout_secs: 30,
@@ -170,6 +201,11 @@ impl P2PConfig {
     /// Validate the configuration
     pub fn validate(&self) -> Result<(), String> {
         self.tls.validate()?;
+
+        // Ensure TLS 1.3 is enforced
+        if self.tls.enabled && !self.tls.is_tls13_only() {
+            return Err("P2P configuration must enforce TLS 1.3 only for security".to_string());
+        }
 
         if self.max_connections == 0 {
             return Err("Maximum connections must be greater than 0".to_string());

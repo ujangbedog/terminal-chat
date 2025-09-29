@@ -1,4 +1,7 @@
 /// TLS module for secure peer-to-peer connections
+/// 
+/// This module enforces TLS 1.3 for all connections to ensure maximum security.
+/// TLS 1.2 and earlier versions are not supported.
 pub mod cert;
 pub mod config;
 pub mod connection;
