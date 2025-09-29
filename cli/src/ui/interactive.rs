@@ -7,6 +7,7 @@ use dialoguer::{theme::ColorfulTheme, Select, Input, Confirm};
 use indicatif::{ProgressBar, ProgressStyle};
 use std::time::Duration;
 use tokio::time::sleep;
+use shared::config::{HostOption, find_available_port, TLS_ENABLED};
 
 /// Interactive menu system using dialoguer
 pub struct InteractiveMenu;
@@ -84,74 +85,110 @@ impl InteractiveMenu {
     async fn handle_p2p_chat(&self) -> Result<(), Box<dyn std::error::Error>> {
         println!("{}", "\n🔗 Setting up P2P Chat Session".bright_cyan().bold());
         
-        // Get username
+        // Step 1: Get username
         let username: String = Input::with_theme(&ColorfulTheme::default())
             .with_prompt("Enter your username")
             .default("User".to_string())
+            .validate_with(|input: &String| -> Result<(), &str> {
+                if input.trim().is_empty() {
+                    Err("Username cannot be empty")
+                } else if input.len() > 32 {
+                    Err("Username must be 32 characters or less")
+                } else {
+                    Ok(())
+                }
+            })
             .interact_text()?;
 
-        // Ask for port
-        let use_custom_port = Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt("Do you want to specify a custom port?")
-            .default(false)
+        // Step 2: Choose between create peer or connect to existing peer
+        let peer_options = vec![
+            "🆕 Create new peer (start new chat room)",
+            "🔗 Connect to existing peer",
+        ];
+
+        let peer_selection = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("What would you like to do?")
+            .default(0)
+            .items(&peer_options)
             .interact()?;
 
-        let port = if use_custom_port {
-            let port_input: String = Input::with_theme(&ColorfulTheme::default())
-                .with_prompt("Enter port number")
-                .default("8080".to_string())
-                .validate_with(|input: &String| -> Result<(), &str> {
-                    match input.parse::<u16>() {
-                        Ok(port) if port > 1024 => Ok(()),
-                        Ok(_) => Err("Port must be greater than 1024"),
-                        Err(_) => Err("Please enter a valid port number"),
-                    }
-                })
-                .interact_text()?;
-            Some(port_input)
+        let (final_host, final_port, bootstrap, selected_host_display) = if peer_selection == 0 {
+            // Create new peer - Step 3: Host selection
+            let host_options = vec![
+                HostOption::Localhost,
+                HostOption::LocalNetwork,
+                HostOption::Wildcard,
+            ];
+            
+            let host_names: Vec<&str> = host_options.iter()
+                .map(|opt| opt.display_name())
+                .collect();
+
+            let host_selection = Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("Choose network interface")
+                .default(0)
+                .items(&host_names)
+                .interact()?;
+
+            let selected_host = &host_options[host_selection];
+            let host_ip = selected_host.to_ip();
+            
+            // Find available port for new peer
+            let port = find_available_port(&host_ip)?;
+            (host_ip, Some(port), None, selected_host.display_name().to_string())
         } else {
-            None
-        };
-
-        // Ask for bootstrap peers
-        let use_bootstrap = Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt("Do you want to connect to an existing peer?")
-            .default(false)
-            .interact()?;
-
-        let bootstrap = if use_bootstrap {
+            // Connect to existing peer - use wildcard host (0.0.0.0) automatically
             let bootstrap_addr: String = Input::with_theme(&ColorfulTheme::default())
-                .with_prompt("Enter bootstrap peer address (IP:PORT)")
+                .with_prompt("Enter peer address to connect to (IP:PORT)")
                 .validate_with(|input: &String| -> Result<(), &str> {
                     match input.parse::<std::net::SocketAddr>() {
                         Ok(_) => Ok(()),
-                        Err(_) => Err("Please enter a valid address (e.g., 127.0.0.1:8080)"),
+                        Err(_) => Err("Please enter a valid address (e.g., 192.168.1.100:40000)"),
                     }
                 })
                 .interact_text()?;
-            Some(bootstrap_addr)
-        } else {
-            None
+            
+            // Use wildcard host (0.0.0.0) for connecting to existing peer
+            let host_ip = shared::config::DEFAULT_HOST_WILDCARD.to_string();
+            let port = find_available_port(&host_ip)?;
+            (host_ip, Some(port), Some(bootstrap_addr), "All Interfaces (0.0.0.0) - Auto-selected for peer connection".to_string())
         };
+
+        // Show selected configuration
+        println!("\n{}", "📋 Configuration Summary".bright_yellow().bold());
+        println!("{}", "─".repeat(50).dimmed());
+        println!("👤 Username: {}", username.bright_white());
+        println!("🌐 Host: {} ({})", final_host.bright_white(), selected_host_display.dimmed());
+        println!("🔌 Port: {}", final_port.unwrap_or(0).to_string().bright_white());
+        if let Some(ref bootstrap_addr) = bootstrap {
+            println!("🔗 Connecting to: {}", bootstrap_addr.bright_white());
+        } else {
+            println!("🆕 Creating new chat room");
+        }
+        println!("🔒 TLS: {}", "Enabled".bright_green());
+        println!("{}", "─".repeat(50).dimmed());
+        println!();
 
         // Show progress
         self.show_connection_progress().await;
 
-        // Build arguments
+        // Build arguments for library function
         let mut args = vec![
             "p2p-core".to_string(),
             "-u".to_string(),
             username,
+            "--host".to_string(),
+            final_host,
         ];
 
-        if let Some(p) = port {
+        if let Some(port) = final_port {
             args.push("-p".to_string());
-            args.push(p);
+            args.push(port.to_string());
         }
 
-        if let Some(b) = bootstrap {
+        if let Some(bootstrap_addr) = bootstrap {
             args.push("-b".to_string());
-            args.push(b);
+            args.push(bootstrap_addr);
         }
 
         // Start P2P chat using library function
@@ -190,22 +227,23 @@ impl InteractiveMenu {
 
     /// Show current configuration
     fn show_configuration(&self) {
+        use shared::config::*;
+        
         println!();
         println!("{}", "📋 Current Configuration".bright_yellow().bold());
         println!("{}", "─".repeat(60).dimmed());
         
-        let default_host = std::env::var("DEFAULT_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
-        let default_port = std::env::var("DEFAULT_PORT").unwrap_or_else(|_| "8080".to_string());
-        let tls_enabled = std::env::var("TLS_ENABLED").unwrap_or_else(|_| "true".to_string());
-        let log_level = std::env::var("LOG_LEVEL").unwrap_or_else(|_| "error".to_string());
-
-        println!("🏠 Default Host: {}", default_host.bright_white());
-        println!("🔌 Default Port: {}", default_port.bright_white());
-        println!("🔒 TLS Enabled: {}", tls_enabled.bright_white());
-        println!("📝 Log Level: {}", log_level.bright_white());
+        println!("🔌 Fixed Port: {}", FIXED_PORT.to_string().bright_white());
+        println!("🔄 Fallback Ports: {}-{}", FALLBACK_PORT_START.to_string().bright_white(), FALLBACK_PORT_END.to_string().bright_white());
+        println!("🔒 TLS: {} (Always Enabled)", "true".bright_green());
+        println!("📝 Log Level: {}", DEFAULT_LOG_LEVEL.bright_white());
+        println!("🌐 Multicast: {}", MULTICAST_ADDR.bright_white());
+        println!("⏱️  Connection Timeout: {}s", CONNECTION_TIMEOUT.to_string().bright_white());
+        println!("💓 Heartbeat Interval: {}s", HEARTBEAT_INTERVAL.to_string().bright_white());
+        println!("👥 Max Connections: {}", MAX_CONNECTIONS.to_string().bright_white());
         
         println!("{}", "─".repeat(60).dimmed());
-        println!("{}", "💡 Tip: Copy .env.example to .env to customize these settings".dimmed());
+        println!("{}", "💡 Configuration is now hardcoded for security and simplicity".dimmed());
         println!();
 
         // Wait for user to press enter
@@ -296,10 +334,7 @@ impl InteractiveMenu {
         let mut listen_port: Option<u16> = None;
         let mut bootstrap_peers: Vec<SocketAddr> = vec![];
         let mut custom_host: Option<String> = None;
-        let enable_tls = std::env::var("TLS_ENABLED")
-            .unwrap_or_else(|_| "true".to_string())
-            .parse::<bool>()
-            .unwrap_or(true);
+        let enable_tls = TLS_ENABLED; // Always true from hardcoded config
         
         let mut i = 1; // Skip program name
         while i < args.len() {
@@ -345,7 +380,7 @@ impl InteractiveMenu {
         
         // Determine final host
         let final_host = custom_host.unwrap_or_else(|| {
-            std::env::var("DEFAULT_HOST").unwrap_or_else(|_| "127.0.0.1".to_string())
+            shared::config::DEFAULT_HOST_LOCALHOST.to_string()
         });
         
         // Run P2P chat and get quit reason
