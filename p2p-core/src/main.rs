@@ -8,16 +8,14 @@ mod ui;
 
 use client::core::P2PChatClient;
 use client::constants::force_cleanup_terminal;
+use shared::config::{DEFAULT_LOG_LEVEL, DEFAULT_HOST_LOCALHOST, FIXED_PORT, TLS_ENABLED, find_available_port};
 use std::env;
 use std::net::SocketAddr;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Load environment variables from .env file
-    dotenv::dotenv().ok();
-    
-    // Get log level from environment or default to error
-    let _log_level = env::var("LOG_LEVEL").unwrap_or_else(|_| "error".to_string());
+    // Use hardcoded configuration instead of .env file
+    let _log_level = DEFAULT_LOG_LEVEL;
     
     // Initialize tracing with all logs disabled to avoid UI interference
     tracing_subscriber::fmt()
@@ -48,22 +46,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn run_p2p_client(args: &[String]) -> Result<(), Box<dyn std::error::Error>> {
     
-    // Get default values from environment variables
-    let default_host = env::var("DEFAULT_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
-    let default_port = env::var("DEFAULT_PORT")
-        .unwrap_or_else(|_| "0".to_string())
-        .parse::<u16>()
-        .unwrap_or(0);
+    // Use hardcoded configuration values
+    let default_host = DEFAULT_HOST_LOCALHOST;
+    let default_port = FIXED_PORT;
     
     // Parse command line arguments
     let mut username = "Anonymous".to_string();
     let mut listen_port: Option<u16> = None;
     let mut bootstrap_peers: Vec<SocketAddr> = vec![];
     let mut custom_host: Option<String> = None;
-    let enable_tls = env::var("TLS_ENABLED")
-        .unwrap_or_else(|_| "true".to_string())
-        .parse::<bool>()
-        .unwrap_or(true);
+    let enable_tls = TLS_ENABLED; // Always true
     
     let mut i = 1; // Skip program name only
     while i < args.len() {
@@ -123,22 +115,29 @@ async fn run_p2p_client(args: &[String]) -> Result<(), Box<dyn std::error::Error
         return Ok(());
     }
     
-    // Determine final host and port
-    let final_host = custom_host.unwrap_or(default_host);
+    // Determine final host
+    let final_host = custom_host.unwrap_or_else(|| default_host.to_string());
     
-    // If no port specified and no bootstrap peers, suggest using a specific port
+    // Determine final port using the new fixed port system
     let final_port = if let Some(port) = listen_port {
+        // Port explicitly specified via command line
         port
-    } else if bootstrap_peers.is_empty() {
-        // This is likely a bootstrap node, suggest using a specific port
-        if default_port == 0 {
-            println!("💡 Tip: For bootstrap nodes, use -p <PORT> to specify a port that other peers can connect to");
-            println!("   Example: p2p-core -u {} -p 8080", username);
-        }
-        default_port
     } else {
-        // This is a regular client connecting to bootstrap, use random port
-        0
+        // Use automatic port selection: try fixed port first, then fallback range
+        match find_available_port(&final_host) {
+            Ok(port) => {
+                if port == FIXED_PORT {
+                    println!("🔌 Using fixed port: {}", port);
+                } else {
+                    println!("🔌 Fixed port {} unavailable, using fallback port: {}", FIXED_PORT, port);
+                }
+                port
+            }
+            Err(e) => {
+                eprintln!("❌ Error finding available port: {}", e);
+                return Err(e);
+            }
+        }
     };
     
     // Create and start P2P client
@@ -151,23 +150,25 @@ async fn run_p2p_client(args: &[String]) -> Result<(), Box<dyn std::error::Error
 }
 
 fn print_help() {
+    use shared::config::*;
+    
     println!("\n📖 P2P Chat Client Help");
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     println!("Usage: p2p-core [OPTIONS]");
     println!("\nOptions:");
     println!("  -u, --username <NAME>     Set username (required)");
-    println!("  -p, --port <PORT>         Set listening port (overrides .env DEFAULT_PORT)");
-    println!("      --host <HOST>         Set listening host (overrides .env DEFAULT_HOST)");
+    println!("  -p, --port <PORT>         Set listening port (default: auto-select from {}-{})", FIXED_PORT, FALLBACK_PORT_END);
+    println!("      --host <HOST>         Set listening host (default: {})", DEFAULT_HOST_LOCALHOST);
     println!("  -b, --bootstrap <IP:PORT> Add bootstrap peer (can be used multiple times)");
     println!("  -h, --help                Show this help");
     println!("\nConfiguration:");
-    println!("  Copy .env.example to .env and modify default settings");
-    println!("  Command line options override .env file settings");
-    println!("\nNote: TLS encryption is configurable via .env file.");
+    println!("  🔌 Fixed Port: {} (with fallback range {}-{})", FIXED_PORT, FALLBACK_PORT_START, FALLBACK_PORT_END);
+    println!("  🔒 TLS: Always enabled for security");
+    println!("  🌐 Default Host: {} (localhost)", DEFAULT_HOST_LOCALHOST);
     println!("\nExamples:");
-    println!("  p2p-core -u Alice");
-    println!("  p2p-core -u Bob -p 8080");
-    println!("  p2p-core -u Charlie --host 0.0.0.0 -p 9000");
-    println!("  p2p-core -u David -b 192.168.1.100:8080");
+    println!("  p2p-core -u Alice                              # Create new chat room");
+    println!("  p2p-core -u Bob --host 0.0.0.0               # Allow external connections");
+    println!("  p2p-core -u Charlie -b 192.168.1.100:40000   # Connect to existing peer");
+    println!("  p2p-core -u David -p 40005                   # Use specific port");
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 }

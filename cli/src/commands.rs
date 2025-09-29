@@ -3,6 +3,9 @@
 use super::{Cli, Commands};
 use crate::ui::InteractiveMenu;
 use colored::*;
+use shared::config::{DEFAULT_LOG_LEVEL, FIXED_PORT, FALLBACK_PORT_START, FALLBACK_PORT_END, 
+                     DEFAULT_HOST_LOCALHOST, MULTICAST_ADDR, CONNECTION_TIMEOUT, 
+                     HEARTBEAT_INTERVAL, MAX_CONNECTIONS};
 use std::env;
 use std::process::Command;
 
@@ -42,8 +45,9 @@ pub async fn handle_command(cli: Cli) -> Result<(), Box<dyn std::error::Error>> 
                 args.push(peer.to_string());
             }
 
+            // TLS is always enabled in hardcoded config, ignore no_tls flag
             if no_tls {
-                env::set_var("TLS_ENABLED", "false");
+                println!("{}", "⚠️  Warning: TLS is always enabled for security. --no-tls flag ignored.".bright_yellow());
             }
 
             // Call external p2p-core binary
@@ -67,20 +71,20 @@ pub async fn handle_command(cli: Cli) -> Result<(), Box<dyn std::error::Error>> 
 /// Show current configuration
 fn show_config() {
     println!("{}", "📋 Current Configuration".bright_yellow().bold());
-    println!("{}", "─".repeat(50).dimmed());
+    println!("{}", "─".repeat(60).dimmed());
     
-    let default_host = env::var("DEFAULT_HOST").unwrap_or_else(|_| "127.0.0.1".to_string());
-    let default_port = env::var("DEFAULT_PORT").unwrap_or_else(|_| "8080".to_string());
-    let tls_enabled = env::var("TLS_ENABLED").unwrap_or_else(|_| "true".to_string());
-    let log_level = env::var("LOG_LEVEL").unwrap_or_else(|_| "error".to_string());
-
-    println!("🏠 Default Host: {}", default_host.bright_white());
-    println!("🔌 Default Port: {}", default_port.bright_white());
-    println!("🔒 TLS Enabled: {}", tls_enabled.bright_white());
-    println!("📝 Log Level: {}", log_level.bright_white());
+    println!("🏠 Default Host: {}", DEFAULT_HOST_LOCALHOST.bright_white());
+    println!("🔌 Fixed Port: {}", FIXED_PORT.to_string().bright_white());
+    println!("🔄 Fallback Ports: {}-{}", FALLBACK_PORT_START.to_string().bright_white(), FALLBACK_PORT_END.to_string().bright_white());
+    println!("🔒 TLS: {} (Always Enabled)", "true".bright_green());
+    println!("📝 Log Level: {}", DEFAULT_LOG_LEVEL.bright_white());
+    println!("🌐 Multicast: {}", MULTICAST_ADDR.bright_white());
+    println!("⏱️  Connection Timeout: {}s", CONNECTION_TIMEOUT.to_string().bright_white());
+    println!("💓 Heartbeat Interval: {}s", HEARTBEAT_INTERVAL.to_string().bright_white());
+    println!("👥 Max Connections: {}", MAX_CONNECTIONS.to_string().bright_white());
     
-    println!("{}", "─".repeat(50).dimmed());
-    println!("{}", "💡 Tip: Copy .env.example to .env to customize these settings".dimmed());
+    println!("{}", "─".repeat(60).dimmed());
+    println!("{}", "💡 Configuration is now hardcoded for security and simplicity".dimmed());
 }
 
 /// Run external p2p-core binary
