@@ -19,6 +19,7 @@ members = [
     "launcher",
     "cli", 
     "p2p-core",
-    "shared"
+    "shared",
+    "identity-gen"
 ]
 resolver = "2"
