@@ -1,6 +1,6 @@
-//! Terminal Chat Application
+//! DPQ Chat Application
 //! 
-//! Main entry point for the Terminal Chat application.
+//! Main entry point for the DPQ Chat application.
 //! This delegates to the launcher module which provides the interactive menu
 //! and CLI interface for the P2P chat system.
 

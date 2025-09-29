@@ -3,12 +3,12 @@
 use clap::{Parser, Subcommand};
 use std::net::SocketAddr;
 
-/// Terminal Chat Client - A modern P2P chat application
+/// DPQ Chat Client - A modern P2P chat application
 #[derive(Parser)]
-#[command(name = "terminal-chat")]
+#[command(name = "dpq-chat")]
 #[command(about = "A modern terminal-based P2P chat application")]
 #[command(version = "0.1.0")]
-#[command(author = "Terminal Chat Team")]
+#[command(author = "DPQ Chat Team")]
 #[command(long_about = None)]
 pub struct Cli {
     /// Enable verbose logging

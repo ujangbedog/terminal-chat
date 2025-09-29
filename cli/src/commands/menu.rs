@@ -7,7 +7,7 @@ use crate::auth::AuthSystem;
 /// Handle menu command (interactive mode)
 pub async fn handle_menu_command() -> Result<(), Box<dyn std::error::Error>> {
     // Interactive menu mode with authentication
-    println!("{}", "🎯 Starting Terminal Chat...".bright_green().bold());
+    println!("{}", "🎯 Starting DPQ Chat...".bright_green().bold());
     
     // First authenticate the user
     let authenticated_user = AuthSystem::authenticate().await?;

@@ -559,6 +559,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
 
 [[package]]
+name = "dpq-chat"
+version = "0.1.0"
+dependencies = [
+ "launcher",
+ "tokio",
+]
+
+[[package]]
 name = "dunce"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1686,14 +1694,6 @@ dependencies = [
  "once_cell",
  "rustix",
  "windows-sys 0.61.1",
-]
-
-[[package]]
-name = "terminal-chat"
-version = "0.1.0"
-dependencies = [
- "launcher",
- "tokio",
 ]
 
 [[package]]

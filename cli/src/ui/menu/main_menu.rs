@@ -132,7 +132,7 @@ impl MainMenu {
 
     /// Draws the menu header with dynamic width
     fn draw_header(&self, width: usize, padding: usize) -> io::Result<()> {
-        let title = "🚀 Terminal Chat Client";
+        let title = "🚀 DPQ Chat Client";
         let subtitle = "Main Menu";
         
         execute!(stdout(), SetForegroundColor(Color::Cyan))?;
@@ -234,7 +234,7 @@ impl MainMenu {
         print!("{}", " ".repeat(padding));
         println!("{}", "━".repeat(width));
         
-        let footer_text = "Terminal Chat v0.1.0 - Built with Rust 🦀";
+        let footer_text = "DPQ Chat v0.1.0 - Built with Rust 🦀";
         let footer_padding = (width.saturating_sub(footer_text.chars().count())) / 2;
         print!("{}", " ".repeat(padding + footer_padding));
         println!("{}", footer_text);

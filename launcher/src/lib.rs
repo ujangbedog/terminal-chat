@@ -1,4 +1,4 @@
-//! Terminal Chat Launcher Library
+//! DPQ Chat Launcher Library
 //! 
 //! Provides the main entry point function that can be called from the root binary.
 

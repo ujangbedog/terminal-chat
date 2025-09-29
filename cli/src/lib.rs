@@ -1,4 +1,4 @@
-//! CLI module for Terminal Chat
+//! CLI module for DPQ Chat
 //! 
 //! Provides professional command-line interface, interactive menus,
 //! and user interaction components using modern CLI libraries.

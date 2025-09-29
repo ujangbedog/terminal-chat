@@ -15,7 +15,7 @@ impl FileManager {
                 std::io::Error::new(std::io::ErrorKind::NotFound, "Home directory not found")
             ))?;
         
-        let identity_dir = home_dir.join(".terminal-chat").join("identities");
+        let identity_dir = home_dir.join(".dpq-chat").join("identities");
         
         // Create directory if it doesn't exist
         if !identity_dir.exists() {

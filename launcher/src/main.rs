@@ -1,4 +1,4 @@
-//! Terminal Chat Launcher Binary
+//! DPQ Chat Launcher Binary
 //! 
 //! Main entry point binary that delegates to the launcher library.
 

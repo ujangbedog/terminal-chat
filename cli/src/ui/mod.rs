@@ -1,4 +1,4 @@
-//! UI module for terminal chat client
+//! UI module for DPQ chat client
 //! 
 //! Contains all user interface components including menus and display functions
 
@@ -12,5 +12,5 @@ use colored::*;
 
 /// Display application header for P2P chat mode
 pub fn display_header() {
-    println!("{}", "=== Terminal Chat Client - P2P Mode ===".bright_cyan().bold());
+    println!("{}", "=== DPQ Chat Client - P2P Mode ===".bright_cyan().bold());
 }

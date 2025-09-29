@@ -105,7 +105,7 @@ impl HandshakeManager {
             peer_info: self.our_info.clone(),
             kyber_exchange,
             signature,
-            protocol_version: "terminal-chat-v2-kyber".to_string(),
+            protocol_version: "dpq-chat-v2-kyber".to_string()
         };
         
         // Update state
@@ -152,7 +152,7 @@ impl HandshakeManager {
                     peer_info: self.our_info.clone(),
                     kyber_exchange: response_kyber,
                     signature,
-                    protocol_version: "terminal-chat-v2-kyber".to_string(),
+                    protocol_version: "dpq-chat-v2-kyber".to_string()
                 };
                 
                 // Update state and store response
@@ -244,7 +244,7 @@ impl HandshakeManager {
         let mut hasher = Sha256::new();
         hasher.update(data);
         hasher.update(&self.our_info.fingerprint);
-        hasher.update(b"terminal-chat-dilithium-signature");
+        hasher.update(b"dpq-chat-dilithium-signature");
         let hash = hasher.finalize();
         
         Ok(hash.to_vec())
@@ -253,7 +253,7 @@ impl HandshakeManager {
     /// Verify handshake signature
     fn verify_handshake(&self, handshake_data: &HandshakeData) -> Result<(), Box<dyn std::error::Error>> {
         // Check protocol version
-        if handshake_data.protocol_version != "terminal-chat-v2-kyber" {
+        if handshake_data.protocol_version != "dpq-chat-v2-kyber" {
             return Err("Unsupported protocol version".into());
         }
         
@@ -301,7 +301,7 @@ mod tests {
         
         let handshake_data = manager.initiate_handshake("bob_fp").unwrap();
         assert_eq!(handshake_data.peer_info.username, "alice");
-        assert_eq!(handshake_data.protocol_version, "terminal-chat-v2-kyber");
+        assert_eq!(handshake_data.protocol_version, "dpq-chat-v2-kyber");
         assert_eq!(manager.get_state("bob_fp"), HandshakeState::Initiated);
         assert!(!handshake_data.kyber_exchange.public_key.is_empty());
         assert!(handshake_data.kyber_exchange.ciphertext.is_none());

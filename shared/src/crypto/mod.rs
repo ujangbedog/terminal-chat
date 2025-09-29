@@ -1,4 +1,4 @@
-//! Cryptographic utilities for Terminal Chat
+//! Cryptographic utilities for DPQ Chat
 //! 
 //! Provides session key management, handshake protocols, and message encryption
 

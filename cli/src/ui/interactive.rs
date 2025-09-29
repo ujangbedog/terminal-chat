@@ -53,7 +53,7 @@ impl InteractiveMenu {
                 3 => {
                     // Exit
                     if self.confirm_exit()? {
-                        println!("{}", "👋 Goodbye! Thanks for using Terminal Chat!".bright_green().bold());
+                        println!("{}", "👋 Goodbye! Thanks for using DPQ Chat!".bright_green().bold());
                         break;
                     }
                 }
@@ -71,7 +71,7 @@ impl InteractiveMenu {
         
         println!();
         println!("{}", "╔══════════════════════════════════════════════════════════════╗".bright_cyan());
-        println!("{}", "║                    🚀 Terminal Chat Client                    ║".bright_cyan());
+        println!("{}", "║                    🚀 DPQ Chat Client                        ║".bright_cyan());
         println!("{}", "║                     Welcome to the future                    ║".bright_cyan());
         println!("{}", "║                    of terminal communication!               ║".bright_cyan());
         println!("{}", "╚══════════════════════════════════════════════════════════════╝".bright_cyan());

@@ -45,7 +45,7 @@ impl SessionKey {
         // Derive session key from shared secret using SHA-256
         let mut hasher = Sha256::new();
         hasher.update(shared_secret);
-        hasher.update(b"terminal-chat-session-key");
+        hasher.update(b"dpq-chat-session-key");
         let hash = hasher.finalize();
         
         let mut key = [0u8; 32];

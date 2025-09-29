@@ -11,7 +11,7 @@ use crate::error::{IdentityError, Result};
 
 #[derive(Parser)]
 #[command(name = "identity-gen")]
-#[command(about = "CRYSTALS-Dilithium Identity Generator for Terminal Chat")]
+#[command(about = "CRYSTALS-Dilithium Identity Generator for DPQ Chat")]
 #[command(version = "0.1.0")]
 pub struct Cli {
     #[command(subcommand)]

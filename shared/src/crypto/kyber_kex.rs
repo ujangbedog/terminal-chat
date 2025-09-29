@@ -181,7 +181,7 @@ impl KyberKeyExchangeManager {
         let mut hasher = Sha256::new();
         hasher.update(kyber_shared_secret.as_bytes());
         hasher.update(context.as_bytes());
-        hasher.update(b"terminal-chat-kyber-kdf");
+        hasher.update(b"dpq-chat-kyber-kdf");
         
         let hash = hasher.finalize();
         Ok(hash.to_vec())
