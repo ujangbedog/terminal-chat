@@ -1,12 +1,11 @@
 /// Certificate management for TLS connections
 use rcgen::{Certificate, CertificateParams, DistinguishedName, DnType, KeyPair, PKCS_ECDSA_P256_SHA256};
-use rustls::{ClientConfig, ServerConfig, Certificate as RustlsCertificate, PrivateKey};
+use rustls::{ClientConfig, ServerConfig};
+use rustls_pki_types::{CertificateDer, PrivateKeyDer, ServerName};
 use rustls_pemfile::{certs, pkcs8_private_keys};
 use std::io::Cursor;
 use std::sync::Arc;
-use std::time::SystemTime;
 use tracing::info;
-
 /// TLS Certificate wrapper
 #[derive(Debug, Clone)]
 pub struct TlsCertificate {
@@ -83,55 +82,59 @@ impl CertificateManager {
 
     /// Create a client TLS configuration with TLS 1.3 enforcement
     pub async fn create_client_config(&self) -> Result<ClientConfig, Box<dyn std::error::Error + Send + Sync>> {
-        // For rustls 0.21, we use the standard builder and configure TLS 1.3
-        // The safe defaults will include TLS 1.3, and we'll enforce it through configuration
+        // Use post-quantum crypto provider for hybrid X25519+ML-KEM
+        let pq_provider = rustls_post_quantum::provider();
+        let _ = pq_provider.install_default();
+        
         let config = ClientConfig::builder()
-            .with_safe_defaults()
+            .dangerous()
             .with_custom_certificate_verifier(Arc::new(P2PVerifier::new()))
             .with_no_client_auth();
 
-        info!("Client TLS configuration created with TLS 1.3 enforcement (rustls 0.21 compatible)");
+        info!("🔐 Client TLS configuration created with HYBRID X25519+ML-KEM support");
         Ok(config)
     }
 
     /// Create a server TLS configuration with TLS 1.3 enforcement
     pub async fn create_server_config(&self) -> Result<ServerConfig, Box<dyn std::error::Error + Send + Sync>> {
+        // Use post-quantum crypto provider for hybrid X25519+ML-KEM
+        let pq_provider = rustls_post_quantum::provider();
+        let _ = pq_provider.install_default();
+        
         let cert = self.certificate.as_ref()
             .ok_or("No certificate available. Call generate_self_signed_cert first.")?;
 
         let cert_chain = self.parse_certificates(&cert.cert_pem)?;
         let private_key = self.parse_private_key(&cert.key_pem)?;
 
-        // For rustls 0.21, we use the standard builder and configure TLS 1.3
         let config = ServerConfig::builder()
-            .with_safe_defaults()
-            .with_client_cert_verifier(Arc::new(P2PVerifier::new()))
+            .with_no_client_auth()
             .with_single_cert(cert_chain, private_key)?;
 
-        info!("Server TLS configuration created with TLS 1.3 enforcement (rustls 0.21 compatible)");
+        info!("🔐 Server TLS configuration created with HYBRID X25519+ML-KEM support");
         Ok(config)
     }
 
     /// Parse PEM certificates
-    fn parse_certificates(&self, pem: &str) -> Result<Vec<RustlsCertificate>, Box<dyn std::error::Error + Send + Sync>> {
+    fn parse_certificates(&self, pem: &str) -> Result<Vec<CertificateDer<'static>>, Box<dyn std::error::Error + Send + Sync>> {
         let mut cursor = Cursor::new(pem.as_bytes());
         let certs = certs(&mut cursor)?
             .into_iter()
-            .map(RustlsCertificate)
+            .map(|cert| CertificateDer::from(cert))
             .collect();
         Ok(certs)
     }
 
     /// Parse PEM private key
-    fn parse_private_key(&self, pem: &str) -> Result<PrivateKey, Box<dyn std::error::Error + Send + Sync>> {
+    fn parse_private_key(&self, pem: &str) -> Result<PrivateKeyDer<'static>, Box<dyn std::error::Error + Send + Sync>> {
         let mut cursor = Cursor::new(pem.as_bytes());
-        let keys = pkcs8_private_keys(&mut cursor)?;
+        let mut keys = pkcs8_private_keys(&mut cursor)?;
         
         if keys.is_empty() {
-            return Err("No private key found".into());
+            return Err("No private key found in PEM".into());
         }
         
-        Ok(PrivateKey(keys[0].clone()))
+        Ok(PrivateKeyDer::Pkcs8(keys.remove(0).into()))
     }
 
     /// Calculate certificate fingerprint
@@ -148,6 +151,7 @@ impl CertificateManager {
 }
 
 /// Custom certificate verifier for P2P connections
+#[derive(Debug)]
 struct P2PVerifier;
 
 impl P2PVerifier {
@@ -156,24 +160,49 @@ impl P2PVerifier {
     }
 }
 
-impl rustls::client::ServerCertVerifier for P2PVerifier {
+impl rustls::client::danger::ServerCertVerifier for P2PVerifier {
     fn verify_server_cert(
         &self,
-        _end_entity: &RustlsCertificate,
-        _intermediates: &[RustlsCertificate],
-        _server_name: &rustls::ServerName,
-        _scts: &mut dyn Iterator<Item = &[u8]>,
+        _end_entity: &CertificateDer<'_>,
+        _intermediates: &[CertificateDer<'_>],
+        _server_name: &ServerName<'_>,
         _ocsp_response: &[u8],
-        _now: SystemTime,
-    ) -> Result<rustls::client::ServerCertVerified, rustls::Error> {
+        _now: rustls::pki_types::UnixTime,
+    ) -> Result<rustls::client::danger::ServerCertVerified, rustls::Error> {
         // For P2P, we accept any certificate (trust on first use model)
         // In production, you might want to implement proper certificate validation
         info!("P2P: Accepting server certificate with TLS 1.3 enforcement");
-        Ok(rustls::client::ServerCertVerified::assertion())
+        Ok(rustls::client::danger::ServerCertVerified::assertion())
+    }
+    
+    fn verify_tls12_signature(
+        &self,
+        _message: &[u8],
+        _cert: &CertificateDer<'_>,
+        _dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+    }
+    
+    fn verify_tls13_signature(
+        &self,
+        _message: &[u8],
+        _cert: &CertificateDer<'_>,
+        _dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+    }
+    
+    fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
+        vec![
+            rustls::SignatureScheme::RSA_PKCS1_SHA256,
+            rustls::SignatureScheme::ECDSA_NISTP256_SHA256,
+            rustls::SignatureScheme::ED25519,
+        ]
     }
 }
 
-impl rustls::server::ClientCertVerifier for P2PVerifier {
+impl rustls::server::danger::ClientCertVerifier for P2PVerifier {
     fn offer_client_auth(&self) -> bool {
         false // Optional client authentication
     }
@@ -182,18 +211,44 @@ impl rustls::server::ClientCertVerifier for P2PVerifier {
         false
     }
 
-    fn client_auth_root_subjects(&self) -> &[rustls::DistinguishedName] {
+    fn root_hint_subjects(&self) -> &[rustls::DistinguishedName] {
         &[]
     }
 
     fn verify_client_cert(
         &self,
-        _end_entity: &RustlsCertificate,
-        _intermediates: &[RustlsCertificate],
-        _now: SystemTime,
-    ) -> Result<rustls::server::ClientCertVerified, rustls::Error> {
+        _end_entity: &CertificateDer<'_>,
+        _intermediates: &[CertificateDer<'_>],
+        _now: rustls::pki_types::UnixTime,
+    ) -> Result<rustls::server::danger::ClientCertVerified, rustls::Error> {
         // Accept any client certificate
         info!("P2P: Accepting client certificate with TLS 1.3 enforcement");
-        Ok(rustls::server::ClientCertVerified::assertion())
+        Ok(rustls::server::danger::ClientCertVerified::assertion())
+    }
+    
+    fn verify_tls12_signature(
+        &self,
+        _message: &[u8],
+        _cert: &CertificateDer<'_>,
+        _dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+    }
+    
+    fn verify_tls13_signature(
+        &self,
+        _message: &[u8],
+        _cert: &CertificateDer<'_>,
+        _dss: &rustls::DigitallySignedStruct,
+    ) -> Result<rustls::client::danger::HandshakeSignatureValid, rustls::Error> {
+        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+    }
+    
+    fn supported_verify_schemes(&self) -> Vec<rustls::SignatureScheme> {
+        vec![
+            rustls::SignatureScheme::RSA_PKCS1_SHA256,
+            rustls::SignatureScheme::ECDSA_NISTP256_SHA256,
+            rustls::SignatureScheme::ED25519,
+        ]
     }
 }
