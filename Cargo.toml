@@ -1,5 +1,5 @@
 [package]
-name = "terminal-chat"
+name = "dpq-chat"
 version = "0.1.0"
 edition = "2021"
 authors = ["ilham alfath"]
@@ -7,7 +7,7 @@ description = "A modern terminal-based P2P chat application"
 license = "MIT"
 
 [[bin]]
-name = "terminal-chat"
+name = "dpq-chat"
 path = "src/main.rs"
 
 [dependencies]

@@ -1,6 +1,6 @@
 //! Authentication system module
 //! 
-//! Provides identity verification and management for Terminal Chat
+//! Provides identity verification and management for DPQ Chat
 
 pub mod types;
 pub mod system;

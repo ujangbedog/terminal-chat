@@ -1,4 +1,4 @@
-# Terminal Chat
+# DPQ Chat
 
 A modern, secure peer-to-peer chat application built with Rust that implements cutting-edge cryptographic technologies to ensure communication remains private and secure, even against future quantum computing threats. This application combines the robustness of Rust's memory safety with advanced cryptographic protocols to create a decentralized chat system that requires no central servers, providing users with complete control over their communications.
 
@@ -57,7 +57,7 @@ When a user first runs the application, the system performs the following steps:
    - Prompts user for a secure password
    - Uses Argon2id (password hashing function) to derive encryption key from password
    - Encrypts the private key using AES-256-GCM with the derived key
-   - Stores encrypted private key securely in `~/.terminal-chat/identities/`
+   - Stores encrypted private key securely in `~/.dpq-chat/identities/`
 
 3. **Identity Storage**:
    - Saves identity metadata (username, creation date, expiration, fingerprint)
@@ -68,7 +68,7 @@ When a user first runs the application, the system performs the following steps:
 When starting a chat session:
 
 1. **Identity Discovery**:
-   - Scans `~/.terminal-chat/identities/` for available identities
+   - Scans `~/.dpq-chat/identities/` for available identities
    - Presents list of identities to user for selection
    - Validates identity integrity and expiration status
 
@@ -126,7 +126,7 @@ During active chat sessions:
 ### First Time Setup
 
 #### Step 1: Generate Your Cryptographic Identity
-Before you can use Terminal Chat, you need to create a cryptographic identity. This identity consists of a CRYSTALS-Dilithium key pair that will be used for authentication and message signing.
+Before you can use DPQ Chat, you need to create a cryptographic identity. This identity consists of a CRYSTALS-Dilithium key pair that will be used for authentication and message signing.
 
 ```bash
 cargo run -- generate-key
@@ -137,7 +137,7 @@ cargo run -- generate-key
 2. You'll be asked to create a secure password (this encrypts your private key)
 3. The system generates a CRYSTALS-Dilithium key pair
 4. Your private key is encrypted with your password using AES-256-GCM
-5. Your identity is saved to `~/.terminal-chat/identities/[username].json`
+5. Your identity is saved to `~/.dpq-chat/identities/[username].json`
 
 **Important Security Notes:**
 - Your password is never stored - it's only used to derive the encryption key
@@ -431,7 +431,7 @@ Displays current system configuration including:
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd terminal-chat
+cd dpq-chat
 
 # Build in development mode
 cargo build
@@ -446,7 +446,7 @@ cargo run
 cargo build --release
 
 # The optimized binary will be in target/release/
-./target/release/terminal-chat
+./target/release/dpq-chat
 ```
 
 #### Additional Build Commands

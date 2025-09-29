@@ -81,7 +81,7 @@ fn show_generation_error(error: &identity_gen::IdentityError) {
     
     // Troubleshooting tips
     println!("{}", "Troubleshooting Tips:".bright_yellow().bold());
-    println!("  • Check if ~/.terminal-chat/ directory is writable");
+    println!("  • Check if ~/.dpq-chat/ directory is writable");
     println!("  • Ensure you have sufficient disk space");
     println!("  • Try running with different username");
     println!("  • Check if identity already exists");

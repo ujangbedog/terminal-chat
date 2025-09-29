@@ -1,4 +1,4 @@
-//! Main menu module for the terminal chat application
+//! Main menu module for the DPQ chat application
 //! 
 //! This module provides an interactive menu system with keyboard navigation
 //! following Rust best practices for modular architecture.

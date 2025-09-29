@@ -120,7 +120,7 @@ impl DisplayManager {
         queue!(stdout, MoveTo(0, 0), Print(format!("╔{}╗", border).bright_cyan()))?;
         
         // Title line
-        let title = "💬 P2P Terminal Chat";
+        let title = "💬 P2P DPQ Chat";
         let visible_title_len = self.get_visible_length(title);
         let content_width = (self.terminal_width as usize).saturating_sub(4); // Account for borders
         let padding = content_width.saturating_sub(visible_title_len) / 2;
@@ -306,7 +306,7 @@ impl DisplayManager {
         
         println!();
         println!("{}", "╔══════════════════════════════════════════════════════════════╗".bright_cyan());
-        println!("{}", "║                    💬 P2P Terminal Chat                      ║".bright_cyan());
+        println!("{}", "║                    💬 P2P DPQ Chat                          ║".bright_cyan());
         println!("{}", "║                   Welcome to secure chat!                    ║".bright_cyan());
         println!("{}", "║                  🔒 Encrypted • 🌐 Peer-to-Peer              ║".bright_cyan());
         println!("{}", "╚══════════════════════════════════════════════════════════════╝".bright_cyan());

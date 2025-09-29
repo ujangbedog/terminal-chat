@@ -90,7 +90,7 @@ impl IdentityVerifier {
         println!("{}", "🔍 No cryptographic identities found in your vault.".bright_yellow().bold());
         println!();
         
-        println!("{}", "To use Terminal Chat, you need a secure identity.".bright_white());
+        println!("{}", "To use DPQ Chat, you need a secure identity.".bright_white());
         println!("{}", "This identity uses CRYSTALS-Dilithium post-quantum cryptography".dimmed());
         println!("{}", "to protect your communications against future quantum attacks.".dimmed());
         println!();

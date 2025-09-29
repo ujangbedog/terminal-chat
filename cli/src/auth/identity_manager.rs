@@ -102,7 +102,7 @@ impl IdentityManager {
         
         // Wait for user acknowledgment
         Input::<String>::with_theme(&ColorfulTheme::default())
-            .with_prompt("Press Enter to continue to Terminal Chat")
+            .with_prompt("Press Enter to continue to DPQ Chat")
             .allow_empty(true)
             .interact_text()?;
         
