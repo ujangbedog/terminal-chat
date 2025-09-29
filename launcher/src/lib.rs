@@ -4,15 +4,12 @@
 
 use cli::{Cli, handle_command};
 use shared::constants::force_cleanup_terminal;
-use std::env;
+use shared::config::DEFAULT_LOG_LEVEL;
 
 /// Main launcher function that can be called from external binaries
 pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Load environment variables from .env file
-    dotenv::dotenv().ok();
-    
-    // Get log level from environment or default to error
-    let _log_level = env::var("LOG_LEVEL").unwrap_or_else(|_| "error".to_string());
+    // Use hardcoded configuration instead of .env file
+    let _log_level = DEFAULT_LOG_LEVEL;
     
     // Initialize tracing with minimal logging to avoid UI interference
     tracing_subscriber::fmt()
