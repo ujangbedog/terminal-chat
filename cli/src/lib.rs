@@ -6,7 +6,9 @@
 pub mod args;
 pub mod commands;
 pub mod ui;
+pub mod auth;
 
 pub use args::{Cli, Commands};
 pub use commands::handle_command;
 pub use ui::InteractiveMenu;
+pub use auth::{AuthSystem, AuthenticatedUser};

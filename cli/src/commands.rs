@@ -2,6 +2,7 @@
 
 use super::{Cli, Commands};
 use crate::ui::InteractiveMenu;
+use crate::auth::AuthSystem;
 use colored::*;
 use shared::config::{DEFAULT_LOG_LEVEL, FIXED_PORT, FALLBACK_PORT_START, FALLBACK_PORT_END, 
                      DEFAULT_HOST_LOCALHOST, MULTICAST_ADDR, CONNECTION_TIMEOUT, 
@@ -55,9 +56,14 @@ pub async fn handle_command(cli: Cli) -> Result<(), Box<dyn std::error::Error>> 
             run_chat_client(&args).await
         }
         Some(Commands::Menu) | None => {
-            // Interactive menu mode
-            println!("{}", "🎯 Starting Interactive Menu...".bright_green().bold());
-            let mut menu = InteractiveMenu::new();
+            // Interactive menu mode with authentication
+            println!("{}", "🎯 Starting Terminal Chat...".bright_green().bold());
+            
+            // First authenticate the user
+            let authenticated_user = AuthSystem::authenticate().await?;
+            
+            // Then show the interactive menu with authenticated user
+            let mut menu = InteractiveMenu::new_with_user(authenticated_user);
             menu.show().await
         }
         Some(Commands::Config { show }) => {

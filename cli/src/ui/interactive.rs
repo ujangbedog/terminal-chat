@@ -8,14 +8,26 @@ use indicatif::{ProgressBar, ProgressStyle};
 use std::time::Duration;
 use tokio::time::sleep;
 use shared::config::{HostOption, find_available_port, TLS_ENABLED};
+use crate::auth::AuthenticatedUser;
 
 /// Interactive menu system using dialoguer
-pub struct InteractiveMenu;
+pub struct InteractiveMenu {
+    authenticated_user: Option<AuthenticatedUser>,
+}
 
 impl InteractiveMenu {
     /// Create a new interactive menu
     pub fn new() -> Self {
-        Self
+        Self {
+            authenticated_user: None,
+        }
+    }
+    
+    /// Create a new interactive menu with authenticated user
+    pub fn new_with_user(user: AuthenticatedUser) -> Self {
+        Self {
+            authenticated_user: Some(user),
+        }
     }
 
     /// Show the main interactive menu
@@ -54,12 +66,26 @@ impl InteractiveMenu {
 
     /// Show welcome message
     fn show_welcome(&self) {
+        // Clear screen for clean presentation
+        print!("\x1B[2J\x1B[1;1H");
+        
         println!();
         println!("{}", "╔══════════════════════════════════════════════════════════════╗".bright_cyan());
         println!("{}", "║                    🚀 Terminal Chat Client                    ║".bright_cyan());
         println!("{}", "║                     Welcome to the future                    ║".bright_cyan());
         println!("{}", "║                    of terminal communication!               ║".bright_cyan());
         println!("{}", "╚══════════════════════════════════════════════════════════════╝".bright_cyan());
+        
+        // Show authenticated user info
+        if let Some(ref user) = self.authenticated_user {
+            println!();
+            println!("{}", "🔐 Authenticated User".bright_green().bold());
+            println!("{}", "─".repeat(40).dimmed());
+            println!("👤 Username: {}", user.username.bright_white());
+            println!("🔑 Fingerprint: {}", user.identity.short_fingerprint().bright_white());
+            println!("🛡️  Security: {}", "Post-Quantum Cryptography".bright_magenta());
+        }
+        
         println!();
     }
 
@@ -85,20 +111,26 @@ impl InteractiveMenu {
     async fn handle_p2p_chat(&self) -> Result<(), Box<dyn std::error::Error>> {
         println!("{}", "\n🔗 Setting up P2P Chat Session".bright_cyan().bold());
         
-        // Step 1: Get username
-        let username: String = Input::with_theme(&ColorfulTheme::default())
-            .with_prompt("Enter your username")
-            .default("User".to_string())
-            .validate_with(|input: &String| -> Result<(), &str> {
-                if input.trim().is_empty() {
-                    Err("Username cannot be empty")
-                } else if input.len() > 32 {
-                    Err("Username must be 32 characters or less")
-                } else {
-                    Ok(())
-                }
-            })
-            .interact_text()?;
+        // Use authenticated username
+        let username = if let Some(ref user) = self.authenticated_user {
+            user.username.clone()
+        } else {
+            // Fallback if no authenticated user (shouldn't happen)
+            let username: String = Input::with_theme(&ColorfulTheme::default())
+                .with_prompt("Enter your username")
+                .default("User".to_string())
+                .validate_with(|input: &String| -> Result<(), &str> {
+                    if input.trim().is_empty() {
+                        Err("Username cannot be empty")
+                    } else if input.len() > 32 {
+                        Err("Username must be 32 characters or less")
+                    } else {
+                        Ok(())
+                    }
+                })
+                .interact_text()?;
+            username
+        };
 
         // Step 2: Choose between create peer or connect to existing peer
         let peer_options = vec![
