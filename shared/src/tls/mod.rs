@@ -5,11 +5,13 @@
 pub mod cert;
 pub mod config;
 pub mod connection;
+// pub mod hybrid_config;  // Disabled temporarily due to API compatibility
 
 // Re-export main types for convenience
 pub use cert::{CertificateManager, TlsCertificate};
 pub use config::TlsConfig;
 pub use connection::{TlsConnection, TlsListener};
+// pub use hybrid_config::{HybridTlsConfig, create_hybrid_tls_context};
 
 use std::sync::Arc;
 use rustls::{ClientConfig, ServerConfig};
@@ -32,4 +34,11 @@ impl TlsContext {
             server_config: Arc::new(server_config),
         })
     }
+    
+    // /// Create a new hybrid TLS context with post-quantum support
+    // pub async fn new_hybrid(cert_manager: &CertificateManager) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+    //     // TODO: Implement hybrid TLS with rustls 0.23 API
+    //     // For now, use regular TLS
+    //     Self::new(cert_manager).await
+    // }
 }

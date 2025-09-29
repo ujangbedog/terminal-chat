@@ -1,9 +1,10 @@
 /// TLS connection handling for P2P networking
-use tokio::net::{TcpListener, TcpStream};
-use tokio_rustls::{TlsAcceptor, TlsConnector, TlsStream};
+use rustls::{ClientConfig, ServerConfig};
+use rustls::pki_types::ServerName;
+use tokio::net::{TcpStream, TcpListener};
+use tokio_rustls::{TlsConnector, TlsAcceptor, TlsStream};
 use std::net::SocketAddr;
 use std::sync::Arc;
-use rustls::{ClientConfig, ServerConfig};
 use tracing::{info, debug};
 
 /// TLS connection wrapper
@@ -26,7 +27,8 @@ impl TlsConnection {
         let connector = TlsConnector::from(client_config);
         
         // Use the IP address as the server name for P2P connections
-        let server_name = rustls::ServerName::try_from(addr.ip().to_string().as_str())?;
+        let server_name_str = addr.ip().to_string();
+        let server_name = ServerName::try_from(server_name_str.as_str())?.to_owned();
         let tls_stream = connector.connect(server_name, tcp_stream).await?;
         
         info!("Established TLS 1.3 connection to {}", addr);
