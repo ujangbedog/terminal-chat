@@ -11,19 +11,15 @@ A simple peer-to-peer chat application built with Rust featuring TLS encryption 
 
 ## ⚙️ Configuration
 
-First, copy the environment configuration file:
-```bash
-cp .env.example .env
-```
+Configuration is now **hardcoded for security and simplicity**:
 
-Edit `.env` to configure default settings:
-```bash
-# Default host (use 0.0.0.0 for external connections)
-DEFAULT_HOST=127.0.0.1
-DEFAULT_PORT=8080
-TLS_ENABLED=true
-LOG_LEVEL=error
-```
+- **Fixed Port**: `40000` (with fallback range `40001-40010`)
+- **TLS**: Always enabled for security
+- **Host Options**: 
+  - `127.0.0.1` (localhost only)
+  - `192.168.x.x` (local network - auto-detected)
+  - `0.0.0.0` (all interfaces)
+- **Log Level**: `error` (minimal logging for clean UI)
 
 ## 🚀 Quick Start
 
@@ -32,22 +28,34 @@ LOG_LEVEL=error
 # Start the application with interactive menu
 cargo run --bin terminal-chat
 
-# Or use CLI arguments for direct P2P mode
-cargo run --bin terminal-chat -- p2p -u Alice -p 8080
-cargo run --bin terminal-chat -- p2p -u Bob -b 127.0.0.1:8080
+# The menu will guide you through:
+# 1. Enter username
+# 2. Select host type (localhost/local network/wildcard)
+# 3. Choose to create new chat or connect to existing peer
+```
+
+### Direct CLI Mode
+```bash
+# Create new chat room (uses fixed port 40000 or fallback)
+cargo run --bin terminal-chat -- p2p -u Alice --host 127.0.0.1
+
+# Connect to existing peer
+cargo run --bin terminal-chat -- p2p -u Bob --host 127.0.0.1 -b 127.0.0.1:40000
+
+# Allow external connections
+cargo run --bin terminal-chat -- p2p -u Alice --host 0.0.0.0
 ```
 
 ### Advanced Usage (Direct P2P Core)
 ```bash
-# Start bootstrap node (first peer) - MUST specify port
-cargo run --bin p2p-core -- -u Alice -p 8080
+# Create new chat room (auto-selects port from 40000-40010)
+cargo run --bin p2p-core -- -u Alice
 
-# For external connections, use 0.0.0.0
-cargo run --bin p2p-core -- -u Alice --host 0.0.0.0 -p 8080
+# Connect to existing peer
+cargo run --bin p2p-core -- -u Bob -b 192.168.1.100:40000
 
-# Connect to bootstrap (in another terminal) - uses random port automatically
-cargo run --bin p2p-core -- -u Bob -b 127.0.0.1:8080
-cargo run --bin p2p-core -- -u Bob -b 192.168.1.106:8080  # for external IP
+# Use specific port
+cargo run --bin p2p-core -- -u Alice -p 40005
 
 # Multiple clients can connect to the same bootstrap
 cargo run --bin p2p-core -- -u Charlie -b 192.168.1.106:8080
@@ -72,10 +80,10 @@ cargo run --bin terminal-chat -- p2p [OPTIONS]
 
 #### CLI Options for P2P Mode:
 - `-u, --username <NAME>` - Set your username (required)
-- `-p, --port <PORT>` - Set listening port (overrides .env DEFAULT_PORT)
-- `--host <HOST>` - Set listening host (overrides .env DEFAULT_HOST)
+- `-p, --port <PORT>` - Set listening port (default: auto-select from 40000-40010)
+- `--host <HOST>` - Set listening host (default: 127.0.0.1)
 - `-b, --bootstrap <IP:PORT>` - Connect to bootstrap peer
-- `--no-tls` - Disable TLS encryption
+- `--no-tls` - ⚠️ Ignored (TLS always enabled for security)
 - `-h, --help` - Show help information
 
 ### Advanced Direct P2P Core
@@ -85,15 +93,16 @@ cargo run --bin p2p-core -- [OPTIONS]
 ```
 Same options as CLI mode but bypasses the launcher system.
 
-### Environment Variables (.env file)
-- `DEFAULT_HOST` - Default host to bind to (127.0.0.1 or 0.0.0.0)
-- `DEFAULT_PORT` - Default port to listen on
-- `TLS_ENABLED` - Enable/disable TLS encryption (true/false)
-- `LOG_LEVEL` - Logging level (error, warn, info, debug, trace)
-- `MULTICAST_ADDR` - Multicast address for peer discovery
-- `CONNECTION_TIMEOUT` - Connection timeout in seconds
-- `HEARTBEAT_INTERVAL` - Heartbeat interval in seconds
-- `MAX_CONNECTIONS` - Maximum number of peer connections
+### Configuration Details
+All configuration is now **hardcoded** for security and simplicity:
+
+- **Fixed Port**: `40000` (primary), fallback range `40001-40010`
+- **TLS Encryption**: Always enabled (cannot be disabled)
+- **Log Level**: `error` (minimal logging for clean UI)
+- **Multicast Address**: `224.0.0.1:9999` (peer discovery)
+- **Connection Timeout**: `30 seconds`
+- **Heartbeat Interval**: `60 seconds`
+- **Max Connections**: `50 peers`
 
 ### Chat Commands
 - Type any message and press Enter to send
