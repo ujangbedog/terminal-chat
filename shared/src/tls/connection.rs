@@ -29,7 +29,7 @@ impl TlsConnection {
         let server_name = rustls::ServerName::try_from(addr.ip().to_string().as_str())?;
         let tls_stream = connector.connect(server_name, tcp_stream).await?;
         
-        info!("Established TLS connection to {}", addr);
+        info!("Established TLS 1.3 connection to {}", addr);
         Ok(TlsConnection::Tls(TlsStream::Client(tls_stream)))
     }
 
@@ -56,6 +56,22 @@ impl TlsConnection {
         match self {
             TlsConnection::Plain(stream) => stream.local_addr(),
             TlsConnection::Tls(stream) => stream.get_ref().0.local_addr(),
+        }
+    }
+
+    /// Check if this is a TLS connection
+    pub fn is_tls(&self) -> bool {
+        matches!(self, TlsConnection::Tls(_))
+    }
+
+    /// Get TLS protocol version information (if available)
+    pub fn get_tls_info(&self) -> Option<String> {
+        match self {
+            TlsConnection::Plain(_) => None,
+            TlsConnection::Tls(_) => {
+                // For TLS 1.3 enforcement, we know it's TLS 1.3
+                Some("TLS 1.3".to_string())
+            }
         }
     }
 }
@@ -163,7 +179,7 @@ impl TlsListener {
             Some(acceptor) => {
                 debug!("Accepting TLS connection from {}", peer_addr);
                 let tls_stream = acceptor.accept(tcp_stream).await?;
-                info!("Accepted TLS connection from {}", peer_addr);
+                info!("Accepted TLS 1.3 connection from {}", peer_addr);
                 Ok((TlsConnection::Tls(TlsStream::Server(tls_stream)), peer_addr))
             }
             None => {
