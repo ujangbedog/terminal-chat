@@ -11,6 +11,9 @@ path = "src/main.rs"
 # CLI module
 cli = { path = "../cli" }
 
+# Identity generation
+identity-gen = { path = "../identity-gen" }
+
 # Environment and logging
 dotenv = "0.15"
 tracing = "0.1"

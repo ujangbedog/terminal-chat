@@ -1,0 +1,43 @@
+[package]
+name = "identity-gen"
+version = "0.1.0"
+edition = "2021"
+authors = ["ilham alfath"]
+description = "Cryptographic identity generator using CRYSTALS-Dilithium"
+license = "MIT"
+
+
+[dependencies]
+# Post-quantum cryptography
+pqcrypto-dilithium = "0.5"
+pqcrypto-traits = "0.3"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+base64 = "0.22"
+
+# CLI and terminal
+clap = { version = "4.4", features = ["derive"] }
+dialoguer = "0.11"
+colored = "2.0"
+
+# Crypto utilities
+sha2 = "0.10"
+hex = "0.4"
+rand = "0.8"
+
+# File operations and encryption
+aes-gcm = "0.10"
+argon2 = "0.5"
+dirs = "5.0"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
