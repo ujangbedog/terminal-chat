@@ -1,49 +1,41 @@
 # DPQ Chat
 
-A modern, secure peer-to-peer chat application built with Rust that implements cutting-edge cryptographic technologies to ensure communication remains private and secure, even against future quantum computing threats. This application combines the robustness of Rust's memory safety with advanced cryptographic protocols to create a decentralized chat system that requires no central servers, providing users with complete control over their communications.
+A secure peer-to-peer chat application built with Rust that implements post-quantum cryptography to protect against both classical and quantum computer attacks. The system uses CRYSTALS-Dilithium for digital signatures and CRYSTALS-Kyber for key exchange, providing quantum-resistant security for all communications.
 
-The application features a beautiful terminal-based user interface that provides real-time messaging capabilities while maintaining the highest standards of security through post-quantum cryptography, hybrid TLS encryption, and secure key management. Every aspect of the system has been designed with security-first principles, ensuring that user communications remain confidential and authenticated.
+Features a terminal-based interface with real-time messaging, decentralized architecture (no central servers), and hybrid cryptographic protocols that combine classical and post-quantum algorithms for maximum security.
 
 ## 🛠️ Technologies & Architecture
 
 ### Core Technologies
-- **Rust** - Memory-safe systems programming language that eliminates entire classes of vulnerabilities
-- **Tokio** - High-performance async runtime optimized for network applications
-- **TLS 1.3** - Latest transport layer security with hybrid classical/post-quantum certificates
+- **Rust** - Memory-safe systems programming language
+- **Tokio** - High-performance async runtime for network applications
 - **CRYSTALS-Dilithium** - NIST-standardized post-quantum digital signature algorithm
 - **CRYSTALS-Kyber** - NIST-standardized post-quantum key encapsulation mechanism
+- **AES-256-GCM** - Authenticated encryption for message confidentiality and integrity
 
-### Why These Technologies?
+### Why Post-Quantum Cryptography?
 
-#### Why TLS?
-Transport Layer Security (TLS) provides essential protection for data in transit. We use TLS 1.3, the latest version, which offers:
-- **Perfect Forward Secrecy**: Each session uses unique keys, so compromising one session doesn't affect others
-- **Reduced Handshake Latency**: Faster connection establishment compared to older TLS versions
-- **Stronger Cipher Suites**: Removal of vulnerable legacy algorithms
-- **Protection Against Downgrade Attacks**: Prevents attackers from forcing use of weaker protocols
-
-#### Why Post-Quantum Cryptography (PQC)?
-Current cryptographic systems rely on mathematical problems that quantum computers can solve efficiently using Shor's algorithm. PQC provides:
+#### The Quantum Threat
+Current cryptographic systems (RSA, ECDH, ECDSA) rely on mathematical problems that quantum computers can solve efficiently using Shor's algorithm. Post-quantum cryptography provides:
 - **Quantum Resistance**: Security against both classical and quantum computer attacks
 - **Future-Proof Security**: Protection against "harvest now, decrypt later" attacks
 - **NIST Standardization**: Using algorithms that have undergone rigorous security analysis
 - **Hybrid Approach**: Combining classical and post-quantum algorithms for defense in depth
 
-#### Why CRYSTALS-Kyber for Key Exchange?
-Kyber is our chosen key encapsulation mechanism (KEM) because:
-- **NIST Standard**: Selected as the primary KEM standard by NIST in 2022
-- **Performance**: Excellent performance characteristics for real-time applications
-- **Security Level**: Provides security equivalent to AES-256 against quantum attacks
-- **Small Key Sizes**: Reasonable key and ciphertext sizes for network transmission
 
-#### Why CRYSTALS-Dilithium for Digital Signatures?
-Dilithium serves as our digital signature algorithm because:
-- **NIST Standard**: Selected as the primary signature standard by NIST in 2022
-- **Strong Security**: Based on the hardness of lattice problems, resistant to quantum attacks
-- **Efficient Verification**: Fast signature verification suitable for real-time messaging
-- **Deterministic Signatures**: Provides consistent signatures for the same message and key
+#### CRYSTALS-Kyber (Key Exchange)
+- **NIST Standard**: Primary KEM standard selected by NIST in 2022
+- **Performance**: Excellent performance for real-time applications
+- **Security**: Equivalent to AES-256 against quantum attacks
+- **Efficiency**: Reasonable key and ciphertext sizes for network transmission
 
-## 🔄 System Flow & Architecture
+#### CRYSTALS-Dilithium (Digital Signatures)
+- **NIST Standard**: Primary signature standard selected by NIST in 2022
+- **Quantum-Resistant**: Based on lattice problems, resistant to quantum attacks
+- **Fast Verification**: Efficient signature verification for real-time messaging
+- **Deterministic**: Consistent signatures for the same message and key
+
+## 🔄 Complete Cryptographic Flow
 
 ### 1. Identity Generation Process
 When a user first runs the application, the system performs the following steps:
@@ -91,59 +83,129 @@ When establishing peer connections:
    - Announces presence with encrypted identity information
    - Listens for peer announcements on the network
 
-2. **TLS Handshake with Hybrid Cryptography**:
-   - Establishes TLS 1.3 connection with classical ECDH key exchange
-   - Performs additional Kyber key encapsulation for post-quantum security
-   - Combines classical and post-quantum shared secrets
-   - Derives session keys from hybrid shared secret
-
-3. **Peer Authentication**:
-   - Exchanges Dilithium public keys over secure TLS channel
-   - Each peer signs a challenge with their Dilithium private key
-   - Verifies peer signatures to ensure authentic identity
-   - Establishes authenticated, encrypted communication channel
+2. **Hybrid Post-Quantum Handshake**:
+   - **Step 1**: Kyber Key Exchange
+     - Peer A initiates Kyber key encapsulation
+     - Generates Kyber public key and sends to Peer B
+     - Peer B responds with Kyber ciphertext
+     - Both peers derive shared secret from Kyber exchange
+   
+   - **Step 2**: Dilithium Authentication
+     - Each peer signs handshake data with their Dilithium private key
+     - Handshake data includes: peer info + Kyber exchange + timestamp
+     - Signatures are verified using peer's Dilithium public key
+     - Ensures authentic identity and prevents man-in-the-middle attacks
+   
+   - **Step 3**: Session Key Derivation
+     - Shared secret from Kyber → SHA-256 → 32-byte AES session key
+     - Each peer-to-peer connection has unique session key
+     - Session keys expire after 1 hour for forward secrecy
 
 ### 4. Message Flow & Security
 During active chat sessions:
 
-1. **Message Encryption**:
-   - Each message is encrypted with session-specific AES-256-GCM keys
-   - Uses unique nonces for each message to prevent replay attacks
-   - Includes message sequence numbers for ordering and integrity
+1. **Message Encryption Process**:
+   ```
+   Plain Message → JSON Serialize → AES-256-GCM(session_key) → Encrypted Message
+   ```
+   - Each message encrypted with peer-specific session key (derived from handshake)
+   - Unique nonce generated for each message (prevents replay attacks)
+   - Message sequence numbers ensure ordering and detect duplicates
+   - Authenticated encryption provides both confidentiality and integrity
 
-2. **Digital Signatures**:
-   - Each message is signed with sender's Dilithium private key
-   - Recipients verify signatures to ensure message authenticity
-   - Prevents message tampering and impersonation attacks
+2. **Message Authentication**:
+   - Messages are authenticated through AES-GCM (not individually signed)
+   - Session key authenticity guaranteed by Dilithium-signed handshake
+   - Any tampering with encrypted messages will fail decryption
+   - Peer identity verified once during handshake, not per message
 
 3. **Perfect Forward Secrecy**:
-   - Session keys are rotated periodically
-   - Old keys are securely erased from memory
+   - Session keys derived fresh from each Kyber handshake
+   - Keys automatically expire after 1 hour
+   - Old session keys securely erased from memory
    - Compromise of current keys doesn't affect past communications
+
+## 🔧 Technical Implementation
+
+### Cryptographic Flow Summary
+```
+1. Identity Generation:
+   Dilithium Keypair → AES-256-GCM(password) → Encrypted Storage
+
+2. Handshake Process:
+   Kyber Key Exchange + Dilithium Signatures → Shared Secret → Session Key
+
+3. Message Encryption:
+   Plain Message → AES-256-GCM(session_key) → Encrypted Message
+```
+
+### Key Components
+
+#### HandshakeManager (`shared/src/crypto/handshake.rs`)
+- Manages peer-to-peer handshake process
+- Integrates Kyber key exchange with Dilithium authentication
+- Creates session keys from shared secrets
+- Verifies peer signatures for authentication
+
+#### DilithiumKeypair (`shared/src/crypto/dilithium_ops.rs`)
+- Handles Dilithium signing and verification operations
+- Loads keypairs from encrypted identity files
+- Signs handshake data for peer authentication
+
+#### SessionKey (`shared/src/crypto/session.rs`)
+- Derives AES-256 keys from Kyber shared secrets
+- Manages key expiration (1 hour lifetime)
+- Provides encrypt/decrypt methods for messages
+
+#### MessageCrypto (`shared/src/crypto/message_crypto.rs`)
+- Encrypts/decrypts messages using session keys
+- Handles message serialization and sequence numbers
+- Prevents replay attacks through nonce management
+
+### Usage Example
+```rust
+// Load user identity and decrypt private key
+let identity = load_identity("username")?;
+let password = "user_password";
+
+// Create HandshakeManager with Dilithium support
+let mut handshake_manager = create_handshake_manager_from_identity(&identity, password)?;
+
+// Initiate handshake with peer
+let handshake_data = handshake_manager.initiate_handshake("peer_fingerprint")?;
+
+// Process peer's response and get session key
+let (session_key, response) = handshake_manager.process_handshake(peer_handshake_data)?;
+
+// Encrypt messages with session key
+let plain_message = MessageCrypto::create_text_message("username", "Hello!");
+let encrypted = MessageCrypto::encrypt_message(&session_key, &plain_message, sequence_num)?;
+```
 
 ## 🚀 Getting Started & Usage Guide
 
 ### First Time Setup
 
 #### Step 1: Generate Your Cryptographic Identity
-Before you can use DPQ Chat, you need to create a cryptographic identity. This identity consists of a CRYSTALS-Dilithium key pair that will be used for authentication and message signing.
+Before you can use DPQ Chat, you need to create a cryptographic identity. This identity consists of a CRYSTALS-Dilithium key pair for authentication and handshake signing.
 
 ```bash
 cargo run -- generate-key
 ```
 
 **What happens during identity generation:**
-1. The system will prompt you for a username (this becomes your chat display name)
-2. You'll be asked to create a secure password (this encrypts your private key)
-3. The system generates a CRYSTALS-Dilithium key pair
-4. Your private key is encrypted with your password using AES-256-GCM
-5. Your identity is saved to `~/.dpq-chat/identities/[username].json`
+1. System prompts for username (becomes your chat display name)
+2. You create a secure password (encrypts your private key)
+3. System generates CRYSTALS-Dilithium key pair (public + private keys)
+4. Private key encrypted with password using AES-256-GCM + Argon2id
+5. Identity saved to `~/.dpq-chat/identities/[username].json`
+6. Unique fingerprint generated from public key (your identity hash)
 
-**Important Security Notes:**
-- Your password is never stored - it's only used to derive the encryption key
-- If you forget your password, your identity cannot be recovered
-- Your private key never leaves your device in unencrypted form
-- The fingerprint shown is derived from your public key and serves as your unique identifier
+**Security Features:**
+- Password never stored - only used to derive encryption key via Argon2id
+- Private key never leaves device in unencrypted form
+- Fingerprint serves as your unique peer identifier
+- Identity files are portable and can be backed up securely
 
 #### Step 2: Verify Your Identity
 After generation, you can list your identities to verify creation:
@@ -169,11 +231,12 @@ cargo run
 ```
 
 **Authentication Process:**
-1. The system scans for available identities
-2. If multiple identities exist, you'll be prompted to select one
-3. Enter the password for your selected identity
-4. The system decrypts and loads your private key
-5. You're authenticated and ready to chat
+1. System scans for available identities in `~/.dpq-chat/identities/`
+2. If multiple identities exist, you select one from the list
+3. Enter password for your selected identity
+4. System decrypts Dilithium private key using Argon2id + AES-256-GCM
+5. HandshakeManager initialized with your Dilithium keypair
+6. You're authenticated and ready for secure P2P connections
 
 **Menu Navigation:**
 - Use arrow keys (↑/↓) to navigate menu options
@@ -245,11 +308,13 @@ cargo run
 # 2. Bob selects "🔗 Connect to existing peer"
 # 3. System prompts for peer address
 # 4. Bob enters: 192.168.1.100:40000
-# 5. System establishes connection:
-#    - TLS 1.3 handshake with hybrid Kyber key exchange
-#    - Dilithium signature verification
-#    - Secure channel established
-# 6. Both users see connection confirmation
+# 5. System establishes secure connection:
+#    - Kyber key exchange generates shared secret
+#    - Both peers sign handshake data with Dilithium private keys
+#    - Signatures verified using each other's public keys
+#    - Session key derived from Kyber shared secret
+#    - Encrypted communication channel established
+# 6. Both users see connection confirmation with peer fingerprints
 ```
 
 #### Scenario 2: Multiple Users Joining
@@ -343,10 +408,12 @@ Ctrl+C
 - Delivery confirmations
 
 **Security Features:**
-- All messages are encrypted with AES-256-GCM
-- Each message is digitally signed with Dilithium
-- Perfect forward secrecy through key rotation
-- Automatic detection of tampered messages
+- All messages encrypted with AES-256-GCM using session keys
+- Session keys derived from Kyber post-quantum key exchange
+- Peer authentication via Dilithium signatures during handshake
+- Perfect forward secrecy through session key expiration (1 hour)
+- Automatic detection of tampered messages via authenticated encryption
+- Sequence numbers prevent replay attacks
 
 ### Identity Management
 
